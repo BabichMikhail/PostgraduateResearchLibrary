@@ -348,7 +348,7 @@ namespace Library.PathFinders
             return ok;
         }
 
-        private bool IsGoodDirection(Edge cEdge, Edge directionEdge, Edge lastEdge) {
+        private bool IsGoodDirection(Edge cEdge, Edge directionEdge, Edge lastEdge, Point nCEdge, Point nLastEdge) {
             var leP1 = lastEdge.p1;
             var leP2 = lastEdge.p2;
             if (MMath.GetDistance(directionEdge, leP1) > MMath.GetDistance(directionEdge, leP2)) {
@@ -361,7 +361,9 @@ namespace Library.PathFinders
                 MUtils.Swap(ref eP1, ref eP2);
             }
 
-            return MMath.GetDistance(eP2, leP1) <= MMath.GetDistance(eP2, leP2);
+            var dle = (leP2 - leP1).Normalized;
+            var de = (eP2 - eP1).Normalized;
+            return MMath.Dot(dle, de) * MMath.Dot(nCEdge, nLastEdge) > 0;
         }
 
         List<Position> GetBodyPositions(List<Edge> edges, Plane fromPlane, Plane toPlane, Dictionary<Edge, Point> normalByEdge) {
@@ -379,30 +381,41 @@ namespace Library.PathFinders
                         if (!usedEdges.ContainsKey(e)) {
                             Edge de = null; // directive edge;
                             Edge le = null; // last edge;
-                            for (var i = eSequences.Count - 1; de is null && i >= 0; --i) {
+                            for (var i = eSequences.Count - 1; le is null && i >= 0; --i) {
                                 var eSequence = eSequences[i];
-                                for (var j = eSequence.Count - 1 ; de is null && j >= 0; --j) {
-                                    if (!(le is null)) {
-                                        de = eSequence[j];
+                                var leIdx = -1;
+                                for (var j = eSequence.Count - 1; de is null && j >= 0; --j) {
+                                    if (!(le is null) && MMath.GetDistance(e, eSequence[j]) > 50) {
+                                        if (leIdx - j > 1) {
+                                            var e1 = eSequence[leIdx - 1];
+                                            var e2 = eSequence[j];
+                                            de = new Edge(0.5f * (e1.p1 + e1.p2), 0.5f * (e2.p1 + e2.p2));
+                                        }
+                                        else {
+                                            de = eSequence[j];
+                                        }
                                     }
-                                    if (MMath.GetDistance(e, eSequence[j]) > 20) {
+                                    if (MMath.GetDistance(e, eSequence[j]) > 15) {
                                         le = eSequence[j];
+                                        leIdx = j;
                                     }
                                 }
                             }
 
                             var n1 = normalByEdge[e];
                             if (le is null) {
-                                if (n1.y > -1 / Math.Sqrt(2) && (e0 is null || MMath.GetDistance(fromPlane, e) < MMath.GetDistance(fromPlane, e0))) {
+                                if (n1.y > -1 / Math.Sqrt(2) && (e0 is null ||
+                                    MMath.GetDistance(fromPlane, e) < MMath.GetDistance(fromPlane, e0) ||
+                                    Math.Abs(MMath.GetDistance(fromPlane, e) - MMath.GetDistance(fromPlane, e0)) < 1e-6 &&
+                                    e.Dy() / Math.Sqrt(e.Dx() * e.Dx() + e.Dz() * e.Dz()) > e0.Dy() / Math.Sqrt(e0.Dx() * e0.Dx() + e0.Dz() * e0.Dz())))
+                                {
                                     e0 = e;
-                                    de0 = de;
                                 }
                             }
                             else if (e0 is null || MMath.GetDistance(le, e) < MMath.GetDistance(le, e0)) {
                                 var n2 = normalByEdge[le];
-                                if (!(de is null) && IsGoodDirection(e, de, le) && (n1.Normalized - n2.Normalized).Magnitude < 0.6 && IsNearestEdge(e, le, eSequences)) {
+                                if (!(de is null) && IsGoodDirection(e, de, le, n1, n2) && (n1.Normalized - n2.Normalized).Magnitude < 0.6 && IsNearestEdge(e, le, eSequences)) {
                                     e0 = e;
-                                    de0 = de;
                                 }
                             }
                         }
@@ -418,14 +431,29 @@ namespace Library.PathFinders
 
                 while (true) {
                     var i0 = -1;
-                    var le = eSequences.Last().Last();
+                    var lastSequence = eSequences.Last();
+                    var le = lastSequence.Last();
+                    Edge de = null;
+                    for (var j = lastSequence.Count - 2; de is null && j >= 0; --j) {
+                        if (MMath.GetDistance(le, lastSequence[j]) > 10) {
+                            var leIdx = lastSequence.Count - 1;
+                            if (leIdx - j > 1) {
+                                var e1 = lastSequence[leIdx - 1];
+                                var e2 = lastSequence[j];
+                                de = new Edge(0.5f * (e1.p1 + e1.p2), 0.5f * (e2.p1 + e2.p2));
+                            }
+                            else {
+                                de = lastSequence[j];
+                            }
+                        }
+                    }
 
                     var cEdges = new List<Edge>();
                     foreach (var p in le.GetPoints()) {
                         foreach (var e in edgesByPoint[p]) {
                             var n1 = normalByEdge[e];
                             var n2 = normalByEdge[le];
-                            if (!usedEdges.ContainsKey(e) && (n1.Normalized - n2.Normalized).Magnitude < 0.6) {
+                            if (!usedEdges.ContainsKey(e) && (n1.Normalized - n2.Normalized).Magnitude < 0.6 && (de is null || IsGoodDirection(e, de, le, n1, n2))) {
                                 cEdges.Add(e);
                             }
                         }
