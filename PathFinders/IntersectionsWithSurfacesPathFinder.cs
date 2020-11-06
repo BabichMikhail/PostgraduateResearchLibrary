@@ -7,6 +7,7 @@ using PathFinders;
 using Edge = Library.Generic.Edge;
 using Plane = Library.Generic.Plane;
 using Point = Library.Generic.Point;
+using Position = Library.Generic.Position;
 using Triangle = Library.Generic.Triangle;
 
 namespace Library.PathFinders
@@ -22,10 +23,10 @@ namespace Library.PathFinders
             }
         }
 
-        public float paintHeight;
-        public float paintRadius;
-        public float paintLateralAllowance;
-        public float paintLongitudinalAllowance;
+        private readonly float paintHeight;
+        private readonly float paintRadius;
+        private readonly float paintLateralAllowance;
+        private readonly float paintLongitudinalAllowance;
 
         public IntersectionsWithSurfacesPathFinder(float aPaintRadius, float aPaintHeight, float aPaintLateralAllowance, float aPaintLongitudinalAllowance) {
             paintHeight = aPaintHeight;
@@ -81,8 +82,8 @@ namespace Library.PathFinders
             }
 
             basePlane.d -= (basePlaneD - 2 * paintLateralAllowance) * (float)basePlane.GetDenominator();
-            plane1.d -= (plane1D - 10 - paintLateralAllowance) * (float)plane1.GetDenominator();
-            plane2.d += (plane2D - 10 - paintLateralAllowance) * (float)plane2.GetDenominator();
+            plane1.d -= (plane1D - 15 - paintLateralAllowance) * (float)plane1.GetDenominator();
+            plane2.d += (plane2D - 15 - paintLateralAllowance) * (float)plane2.GetDenominator();
 
             {
                 var maxDistance = plane2.GetDistance(plane1.GetSomePoint());
@@ -134,7 +135,7 @@ namespace Library.PathFinders
                         }
                     }
 
-                    if (nearestIdx != -1) {
+                    if (nearestIdx != -1 && minDistance < 5.0f) {
                         processedPointIndexes.Add(i, true);
                         processedPointIndexes.Add(nearestIdx, true);
 
@@ -169,7 +170,12 @@ namespace Library.PathFinders
 
             var pathPartsByDistance = fixedPathPartsByDistance;
             var result = new List<Position>();
+            // For debug. We can specify distance from fromPlane to pathParts
+            // var lineNumber = 1;
             foreach (var pathPart in pathPartsByDistance) {
+                // if (!(pathPart.Key > 1950 - lineNumber * 200 && pathPart.Key < 2150 - lineNumber * 200)) {
+                //     continue;
+                // }
                 var fromPlane = plane1;
                 var toPlane = plane2;
 
@@ -190,40 +196,42 @@ namespace Library.PathFinders
                     AddEdge(ref edgesByPoint, edge.p2, edge);
                 }
 
-                var subResult = GetBodyPositions(edges, fromPlane, toPlane, originalNormalByEdge);
+                var subResults = GetBodyPositions(edges, fromPlane, toPlane, originalNormalByEdge);
 
-                {
-                    var i0 = 0;
-                    var i1 = i0 + 1;
-                    while (i1 < subResult.Count - 1 && (subResult[i0].surfacePosition - subResult[i1].surfacePosition).Magnitude < 2) {
-                        ++i1;
+                foreach (var subResult in subResults) {
+                    {
+                        var i0 = 0;
+                        var i1 = i0 + 1;
+                        while (i1 < subResult.Count - 1 && (subResult[i0].surfacePoint - subResult[i1].surfacePoint).Magnitude < 30) {
+                            ++i1;
+                        }
+
+                        var pos0 = subResult[i0];
+                        var pos1 = subResult[i1];
+                        var pd = pos0.paintDirection;
+                        var surface0 = pos0.surfacePoint;
+                        var surface1 = pos1.surfacePoint;
+                        var dir = (surface0 - surface1).Normalized;
+                        result.Add(new Position(pos0.originPoint + dir * paintLongitudinalAllowance, pd, pos0.surfacePoint + dir * paintLongitudinalAllowance, Position.PositionType.Start));
                     }
 
-                    var pos0 = subResult[i0];
-                    var pos1 = subResult[i1];
-                    var pd = pos0.paintDirection;
-                    var surface0 = pos0.surfacePosition;
-                    var surface1 = pos1.surfacePosition;
-                    var dir = (surface0 - surface1).Normalized;
-                    result.Add(new Position(pos0.originPosition + dir * paintLongitudinalAllowance, pd, pos0.surfacePosition + dir * paintLongitudinalAllowance, Position.PositionType.Start));
-                }
+                    result.AddRange(subResult);
 
-                result.AddRange(subResult);
+                    {
+                        var i0 = subResult.Count - 1;
+                        var i1 = i0 - 1;
+                        while (i1 > 0 && (subResult[i0].surfacePoint - subResult[i1].surfacePoint).Magnitude < 30) {
+                            --i1;
+                        }
 
-                {
-                    var i0 = subResult.Count - 1;
-                    var i1 = i0 - 1;
-                    while (i1 > 0 && (subResult[i0].surfacePosition - subResult[i1].surfacePosition).Magnitude < 2) {
-                        --i1;
+                        var pos0 = subResult[i0];
+                        var pos1 = subResult[i1];
+                        var pd = pos0.paintDirection;
+                        var surface0 = pos0.surfacePoint;
+                        var surface1 = pos1.surfacePoint;
+                        var dir = (surface0 - surface1).Normalized;
+                        result.Add(new Position(pos0.originPoint + dir * paintLongitudinalAllowance, pd, pos0.surfacePoint + dir * paintLongitudinalAllowance, Position.PositionType.Finish));
                     }
-
-                    var pos0 = subResult[i0];
-                    var pos1 = subResult[i1];
-                    var pd = pos0.paintDirection;
-                    var surface0 = pos0.surfacePosition;
-                    var surface1 = pos1.surfacePosition;
-                    var dir = (surface0 - surface1).Normalized;
-                    result.Add(new Position(pos0.originPosition + dir * paintLongitudinalAllowance, pd, pos0.surfacePosition + dir * paintLongitudinalAllowance, Position.PositionType.Finish));
                 }
             }
 
@@ -242,7 +250,7 @@ namespace Library.PathFinders
                 var p = (a + b) / 2;
                 var dp = basePlane.GetDistance(p);
 
-                if (Math.Abs(dp - distance) < 1e-4 || dp <= distance) {
+                if (Math.Abs(dp - distance) <= 1e-4 || dp <= distance) {
                     a = p;
                     da = dp;
                 }
@@ -281,7 +289,7 @@ namespace Library.PathFinders
                 var i2 = -1;
                 for (var i = 0; i < vertices.Count; ++i) {
                     for (var j = i + 1; j < vertices.Count; ++j) {
-                        m[i][j] = m[j][i] = (vertices[i] - vertices[j]).SqrMagnitude;
+                        m[i][j] = m[j][i] = MMath.GetDistance(vertices[i], vertices[j]);
                         if (i1 == -1 || m[i][j] < m[i1][i2]) {
                             i1 = i;
                             i2 = j;
@@ -289,8 +297,8 @@ namespace Library.PathFinders
                     }
                 }
 
-                var d1 = basePlane.GetDistance(vertices[i1]);
-                var d2 = basePlane.GetDistance(vertices[i2]);
+                var d1 = MMath.GetDistance(basePlane, vertices[i1]);
+                var d2 = MMath.GetDistance(basePlane, vertices[i2]);
 
                 var newVertices = new List<Point>();
                 for (var i = 0; i < vertices.Count; ++i) {
@@ -320,103 +328,123 @@ namespace Library.PathFinders
             return vertices;
         }
 
-        Dictionary<Point, List<Edge>> GetEdgesByPoint(List<Edge> edges) {
-            var edgesByPoint = new Dictionary<Point, List<Edge>>();
-            foreach (var edge in edges) {
-                AddEdge(ref edgesByPoint, edge.p1, edge);
-                AddEdge(ref edgesByPoint, edge.p2, edge);
-            }
-
-            return edgesByPoint;
+        Edge GetDirectedEdge(Plane plane, Edge e) {
+            return plane.GetDistance(e.p1) < plane.GetDistance(e.p2) ? new Edge(e.p1, e.p2) : new Edge(e.p2, e.p1);
         }
 
-        private bool IsNearestEdge(Edge cEdge, Edge lastEdge, List<List<Edge>> sequences) {
-            var ok = true;
-            for (var i = 0; i < sequences.Count && ok; ++i) {
-                for (var j = 0; j < sequences[i].Count && ok; ++j) {
-                    if (lastEdge == sequences[i][j]) {
-                        i = sequences.Count;
-                        break;
-                    }
-
-                    if (MMath.GetDistance(cEdge, lastEdge) > MMath.GetDistance(cEdge, sequences[i][j])) {
-                        ok = false;
-                    }
-                }
-            }
-
-            return ok;
-        }
-
-        private bool IsGoodDirection(Edge cEdge, Edge directionEdge, Edge lastEdge, Point nCEdge, Point nLastEdge) {
-            var leP1 = lastEdge.p1;
-            var leP2 = lastEdge.p2;
-            if (MMath.GetDistance(directionEdge, leP1) > MMath.GetDistance(directionEdge, leP2)) {
-                MUtils.Swap(ref leP1, ref leP2);
-            }
-
-            var eP1 = cEdge.p1;
-            var eP2 = cEdge.p2;
-            if (MMath.GetDistance(leP2, eP1) > MMath.GetDistance(leP2, eP2)) {
-                MUtils.Swap(ref eP1, ref eP2);
-            }
-
-            var dle = (leP2 - leP1).Normalized;
-            var de = (eP2 - eP1).Normalized;
-            return MMath.Dot(dle, de) * MMath.Dot(nCEdge, nLastEdge) > 0;
-        }
-
-        List<Position> GetBodyPositions(List<Edge> edges, Plane fromPlane, Plane toPlane, Dictionary<Edge, Point> normalByEdge) {
-            var result = new List<Position>();
-
-            var edgesByPoint = GetEdgesByPoint(edges);
+        public List<List<Position>> GetBodyPositions(List<Edge> edges, Plane fromPlane, Plane toPlane, Dictionary<Edge, Point> normalByEdge) {
+            var distanceBetweenSequences = 2 * paintLongitudinalAllowance;
             var eSequences = new List<List<Edge>>();
             var usedEdges = new Dictionary<Edge, bool>();
+            var usedPoints = new Dictionary<Point, bool>();
+            var directedEdges = new Dictionary<Edge, Edge>();
 
             while (true) {
                 Edge de0 = null;
-                {
+                while (true) {
+                    Edge le1 = null;
+                    Edge le2 = null;
+                    if (eSequences.Count > 0) {
+                        le2 = eSequences.Last().Last();
+                        var dle2 = directedEdges[le2];
+                        for (var i = eSequences.Count - 1; le1 is null && i >= 0; --i) {
+                            var eSequence = eSequences[i];
+                            for (var j = eSequence.Count - 1; le1 is null && j >= 0; --j) {
+                                var dle = directedEdges[eSequence[j]];
+                                if (MMath.GetDistance(dle2.p2, dle.p1) > 20) {
+                                    le1 = eSequence[j];
+                                }
+                            }
+                        }
+                    }
+
                     Edge e0 = null;
                     foreach (var e in edges) {
                         if (!usedEdges.ContainsKey(e)) {
-                            Edge de = null; // directive edge;
-                            Edge le = null; // last edge;
-                            for (var i = eSequences.Count - 1; le is null && i >= 0; --i) {
-                                var eSequence = eSequences[i];
-                                var leIdx = -1;
-                                for (var j = eSequence.Count - 1; de is null && j >= 0; --j) {
-                                    if (!(le is null) && MMath.GetDistance(e, eSequence[j]) > 50) {
-                                        if (leIdx - j > 1) {
-                                            var e1 = eSequence[leIdx - 1];
-                                            var e2 = eSequence[j];
-                                            de = new Edge(0.5f * (e1.p1 + e1.p2), 0.5f * (e2.p1 + e2.p2));
-                                        }
-                                        else {
-                                            de = eSequence[j];
-                                        }
+                            var cFromPlane = fromPlane;
+                            var minDistance = 0.0;
+                            var isNewPath = le2 is null || MMath.GetDistance(e, le2.p2) >= distanceBetweenSequences;
+
+                            if (!(le2 is null)) {
+                                if (!isNewPath) {
+                                    var dle2 = directedEdges[le2];
+                                    var de = dle2;
+                                    if (!(le1 is null)) {
+                                        var dle1 = directedEdges[le1];
+                                        de = new Edge(dle1.p1, dle2.p2);
                                     }
-                                    if (MMath.GetDistance(e, eSequence[j]) > 15) {
-                                        le = eSequence[j];
-                                        leIdx = j;
-                                    }
+
+                                    cFromPlane = de.GetPlane();
+                                    cFromPlane.d += (float)(cFromPlane.GetDenominator() * fromPlane.GetDistance(de.p2));
+                                    UnityEngine.Debug.Assert(cFromPlane.GetDistance(de.p1) < cFromPlane.GetDistance(de.p2));
+                                    minDistance = cFromPlane.GetDistance(de.p2);
+                                }
+
+                                if (isNewPath) {
+                                    var dle2 = directedEdges[le2];
+                                    minDistance = MMath.GetDistance(fromPlane, dle2.p2);
                                 }
                             }
 
-                            var n1 = normalByEdge[e];
-                            if (le is null) {
-                                if (n1.y > -1 / Math.Sqrt(2) && (e0 is null ||
-                                    MMath.GetDistance(fromPlane, e) < MMath.GetDistance(fromPlane, e0) ||
-                                    Math.Abs(MMath.GetDistance(fromPlane, e) - MMath.GetDistance(fromPlane, e0)) < 1e-6 &&
-                                    e.Dy() / Math.Sqrt(e.Dx() * e.Dx() + e.Dz() * e.Dz()) > e0.Dy() / Math.Sqrt(e0.Dx() * e0.Dx() + e0.Dz() * e0.Dz())))
-                                {
-                                    e0 = e;
+                            var e1 = GetDirectedEdge(cFromPlane, e);
+                            var e2 = e0 is null ? null : GetDirectedEdge(cFromPlane, e0);
+
+                            var ok = true;
+
+                            // ok = ok && n1.y > -1 / Math.Sqrt(2);
+                            // ok = ok && (le2 is null || MMath.Dot(normalByEdge[le2], n1) > 0);
+
+                            if (ok && !isNewPath && !(le2 is null)) {
+                                var dle2 = directedEdges[le2];
+                                ok = ok && MMath.Dot(e1.p2 - e1.p1, dle2.p2 - dle2.p1) > 0;
+                            }
+
+                            if (ok && !isNewPath && !(le2 is null)) {
+                                var distance = MMath.GetDistance(le2.p2, e1.p1);
+                                for (var i = 0; i < eSequences.Count; ++i) {
+                                    for (var j = 0; j < eSequences[i].Count; ++j) {
+                                        if (i < eSequences.Count - 1 || j < eSequences[i].Count - 1) {
+                                            var de = directedEdges[eSequences[i][j]];
+                                            distance = Math.Min(distance, MMath.GetDistance(de.p2, e1.p1));
+                                        }
+                                    }
+                                }
+
+                                ok = ok && Math.Abs(distance - MMath.GetDistance(le2.p2, e1.p1)) < 1e-6;
+                                if (!ok) {
+                                    usedEdges.Add(e, true);
+                                    continue;
                                 }
                             }
-                            else if (e0 is null || MMath.GetDistance(le, e) < MMath.GetDistance(le, e0)) {
-                                var n2 = normalByEdge[le];
-                                if (!(de is null) && IsGoodDirection(e, de, le, n1, n2) && (n1.Normalized - n2.Normalized).Magnitude < 0.6 && IsNearestEdge(e, le, eSequences)) {
-                                    e0 = e;
+
+                            if (ok && usedPoints.ContainsKey(e1.p2)) {
+                                usedEdges.Add(e, true);
+                                continue;
+                            }
+
+                            ok = ok && MMath.GetDistance(cFromPlane, e1) >= minDistance;
+
+                            if (!(e2 is null)) {
+                                ok = ok && (
+                                    Math.Abs(MMath.GetDistance(cFromPlane, e1) - MMath.GetDistance(cFromPlane, e2)) < 1e-4 ||
+                                    MMath.GetDistance(cFromPlane, e1) + 5 < MMath.GetDistance(cFromPlane, e2)
+                                );
+
+                                if (ok && Math.Abs(MMath.GetDistance(cFromPlane, e1) - MMath.GetDistance(cFromPlane, e2)) < 5) {
+                                    ok = ok && e1.Dy() / Math.Sqrt(e1.Dx() * e1.Dx() + e1.Dz() * e1.Dz()) > e2.Dy() / Math.Sqrt(e2.Dx() * e2.Dx() + e2.Dz() * e2.Dz());
                                 }
+                            }
+
+                            if (ok && !(e2 is null)) {
+                                ok = ok && MMath.GetDistance(fromPlane, e1) - 50 < MMath.GetDistance(fromPlane, e2);
+                            }
+
+                            if (ok) {
+                                if (!(e0 is null)) {
+                                    directedEdges.Remove(e0);
+                                }
+                                e0 = e;
+                                directedEdges.Add(e, e1);
                             }
                         }
                     }
@@ -425,86 +453,64 @@ namespace Library.PathFinders
                         break;
                     }
 
-                    eSequences.Add(new List<Edge>{e0});
-                    usedEdges.Add(e0, true);
-                }
-
-                while (true) {
-                    var i0 = -1;
-                    var lastSequence = eSequences.Last();
-                    var le = lastSequence.Last();
-                    Edge de = null;
-                    for (var j = lastSequence.Count - 2; de is null && j >= 0; --j) {
-                        if (MMath.GetDistance(le, lastSequence[j]) > 10) {
-                            var leIdx = lastSequence.Count - 1;
-                            if (leIdx - j > 1) {
-                                var e1 = lastSequence[leIdx - 1];
-                                var e2 = lastSequence[j];
-                                de = new Edge(0.5f * (e1.p1 + e1.p2), 0.5f * (e2.p1 + e2.p2));
-                            }
-                            else {
-                                de = lastSequence[j];
-                            }
+                    if (eSequences.Count > 0) {
+                        var rle = eSequences.Last().Last();
+                        if (rle.HasPoint(e0.p1) || rle.HasPoint(e0.p2)) {
+                            eSequences.Last().Add(e0);
                         }
-                    }
-
-                    var cEdges = new List<Edge>();
-                    foreach (var p in le.GetPoints()) {
-                        foreach (var e in edgesByPoint[p]) {
-                            var n1 = normalByEdge[e];
-                            var n2 = normalByEdge[le];
-                            if (!usedEdges.ContainsKey(e) && (n1.Normalized - n2.Normalized).Magnitude < 0.6 && (de is null || IsGoodDirection(e, de, le, n1, n2))) {
-                                cEdges.Add(e);
-                            }
-                        }
-                    }
-
-                    if (cEdges.Count == 0) {
-                        break;
-                    }
-
-                    eSequences.Last().Add(cEdges[0]);
-                    usedEdges.Add(cEdges[0], true);
-                }
-
-                var length = 0.0f;
-                foreach (var e in eSequences.Last()) {
-                    length += (e.p1 - e.p2).Magnitude;
-                }
-                if (length < 2) {
-                    eSequences.RemoveAt(eSequences.Count - 1);
-                }
-            }
-
-            {
-                var eSequence = new List<Edge>();
-                foreach (var sequence in eSequences) {
-                    eSequence.AddRange(sequence);
-                }
-
-                for (var i = 0; i < eSequence.Count; ++i) {
-                    var edge = eSequence[i];
-                    var p1 = edge.p1;
-                    var p2 = edge.p2;
-                    if (i == 0) {
-                        if (fromPlane.GetDistance(p2) < fromPlane.GetDistance(p1)) {
-                            MUtils.Swap(ref p1, ref p2);
+                        else {
+                            eSequences.Add(new List<Edge>{e0});
                         }
                     }
                     else {
-                        var prevEdge = eSequence[i - 1];
-                        if (prevEdge.p1 == p2 || prevEdge.p2 == p2) {
-                            MUtils.Swap(ref p1, ref p2);
-                        }
+                        eSequences.Add(new List<Edge>{e0});
                     }
 
-                    var n = normalByEdge[edge];
-                    result.Add(new Position(p1 + n * paintHeight, -n, p1, Position.PositionType.Middle));
-                    result.Add(new Position(p2 + n * paintHeight, -n, p2, Position.PositionType.Middle));
+                    usedEdges.Add(e0, true);
+
+                    if (!usedPoints.ContainsKey(e0.p1)) {
+                        usedPoints.Add(e0.p1, true);
+                    }
+
+                    if (!usedPoints.ContainsKey(e0.p2)) {
+                        usedPoints.Add(e0.p2, true);
+                    }
+                }
+
+                break;
+            }
+
+            {
+                var newESequences = new List<List<Edge>>();
+                for (var i = 0; i < eSequences.Count; ++i) {
+                    var eSequence = eSequences[i];
+                    if (i == 0 || MMath.GetDistance(eSequences[i - 1].Last(), eSequence.First()) >= distanceBetweenSequences) {
+                        newESequences.Add(eSequence);
+                    }
+                    else {
+                        newESequences.Last().AddRange(eSequence);
+                    }
+                }
+
+                eSequences = newESequences;
+            }
+
+            var results = new List<List<Position>>();
+            {
+                foreach (var eSequence in eSequences) {
+                    var result = new List<Position>();
+                    foreach (var e in eSequence) {
+                        var de = directedEdges[e];
+                        var n = normalByEdge[e];
+                        result.Add(new Position(de.p1 + n * paintHeight, -n, de.p1, Position.PositionType.Middle));
+                        result.Add(new Position(de.p2 + n * paintHeight, -n, de.p2, Position.PositionType.Middle));
+                    }
+
+                    results.Add(result);
                 }
             }
 
-            return result;
+            return results;
         }
 
         Dictionary<double, List<TrianglePath>> SplitObjectByDistance(Plane basePlane, List<Triangle> triangles) {
@@ -567,10 +573,16 @@ namespace Library.PathFinders
 
                         Edge newEdge = null;
                         if (fPoints.Count == 1 && vertices.Count == 2 && fPoints.GetHashCode() == vertices[0].GetHashCode() && vertices[0].GetHashCode() == vertices[1].GetHashCode()) {
-                            newEdge = new Edge(fPoints[0], fPoints[0]);
+                            // Edge with one point [fPoints[0], fPoints[0]]
                         }
                         else if (fPoints.Count == 2) {
                             newEdge = new Edge(fPoints[0], fPoints[1]);
+                            if (fPoints[0].z > 1022 && fPoints[0].z < 1023 || fPoints[1].z > 1022 && fPoints[1].z < 1023) {
+                                Debug.Assert(false);
+                            }
+                        }
+                        else {
+                            Debug.Assert(false);
                         }
 
                         if (!(newEdge is null)) {

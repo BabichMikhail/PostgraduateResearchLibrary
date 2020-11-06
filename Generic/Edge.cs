@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Library.Generic
@@ -18,18 +17,22 @@ namespace Library.Generic
 
         public bool HasPoint(Point p) => p1 == p || p2 == p;
 
-        public float Dx() => Math.Abs(p1.x - p2.x);
+        public float Dx() => p2.x - p1.x;
 
-        public float Dy() => Math.Abs(p1.y - p2.y);
+        public float Dy() => p2.y - p1.y;
 
-        public float Dz() => Math.Abs(p1.z - p2.z);
+        public float Dz() => p2.z - p1.z;
 
-        public static bool operator ==(Edge a, Edge b) {
-            return a.p1 == b.p1 && a.p2 == b.p2 || a.p1 == b.p2 && a.p2 == b.p1;
-        }
+        public static bool operator ==(Edge a, Edge b) => a.p1 == b.p1 && a.p2 == b.p2 || a.p1 == b.p2 && a.p2 == b.p1;
 
-        public static bool operator !=(Edge a, Edge b) {
-            return !(a == b);
+        public static bool operator !=(Edge a, Edge b) => !(a == b);
+
+        public Plane GetPlane() {
+            var v = p2 - p1;
+            var d = -(p2.x * v.x + p2.y * v.y + p2.z * v.z);
+            var plane = new Plane(v.x, v.y, v.z, d);
+
+            return plane;
         }
     }
 }

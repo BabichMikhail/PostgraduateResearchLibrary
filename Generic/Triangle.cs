@@ -40,11 +40,20 @@ namespace Library.Generic
 
         public List<Point> GetPoints() => new List<Point>{ p1, p2, p3 };
 
-        public List<Edge> GetEdges() => new List<Edge> {
-            new Edge(p1, p2),
-            new Edge(p1, p3),
-            new Edge(p2, p3),
-        };
+
+        private List<Edge> edges = null;
+
+        public List<Edge> GetEdges() {
+            if (edges is null) {
+                edges = new List<Edge> {
+                    new Edge(p1, p2),
+                    new Edge(p1, p3),
+                    new Edge(p2, p3),
+                };
+            }
+
+            return edges;
+        }
 
         public float GetPerimeter() => l1 + l2 + l3;
 

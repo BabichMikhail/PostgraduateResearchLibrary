@@ -7,6 +7,8 @@ namespace Library.Generic
 
         public static double GetDistance(Point p1, Point p2) => (p1 - p2).Magnitude;
 
+        public static double GetDistance(Plane plane, Point p) => plane.GetDistance(p);
+
         public static double GetDistance(Plane plane, Edge edge) => Math.Min(plane.GetDistance(edge.p1), plane.GetDistance(edge.p2));
 
         public static double GetDistance(Edge edge, Point point) => Math.Min((edge.p1 - point).Magnitude, (edge.p2 - point).Magnitude);
