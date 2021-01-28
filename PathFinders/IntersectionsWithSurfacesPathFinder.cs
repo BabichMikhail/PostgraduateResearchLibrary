@@ -431,7 +431,8 @@ namespace Library.PathFinders
                                 );
 
                                 if (ok && Math.Abs(MMath.GetDistance(cFromPlane, e1) - MMath.GetDistance(cFromPlane, e2)) < 5) {
-                                    ok = ok && e1.Dy() / Math.Sqrt(e1.Dx() * e1.Dx() + e1.Dz() * e1.Dz()) > e2.Dy() / Math.Sqrt(e2.Dx() * e2.Dx() + e2.Dz() * e2.Dz());
+                                    ok = ok && e1.Dx() > 1e-6 && e1.Dz() > 1e-6 &&
+                                        e1.Dy() / Math.Sqrt(e1.Dx() * e1.Dx() + e1.Dz() * e1.Dz()) > e2.Dy() / Math.Sqrt(e2.Dx() * e2.Dx() + e2.Dz() * e2.Dz());
                                 }
                             }
 
