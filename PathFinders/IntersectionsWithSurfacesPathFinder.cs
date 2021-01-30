@@ -23,14 +23,14 @@ namespace Library.PathFinders
             }
         }
 
-        private readonly float paintHeight;
         private readonly float paintRadius;
+        private readonly float paintHeight;
         private readonly float paintLateralAllowance;
         private readonly float paintLongitudinalAllowance;
 
         public IntersectionsWithSurfacesPathFinder(float aPaintRadius, float aPaintHeight, float aPaintLateralAllowance, float aPaintLongitudinalAllowance) {
-            paintHeight = aPaintHeight;
             paintRadius = aPaintRadius;
+            paintHeight = aPaintHeight;
             paintLateralAllowance = aPaintLateralAllowance;
             paintLongitudinalAllowance = aPaintLongitudinalAllowance;
         }
@@ -523,7 +523,7 @@ namespace Library.PathFinders
             }
             var offset = minDistanceToFigure - paintLateralAllowance;
 
-            var lineWidth = paintRadius;
+            var lineWidth = 2 * paintRadius;
             var edgeByAddedPoint = new Dictionary<Point, Edge>();
             var pathPartsByDistance = new Dictionary<double, List<TrianglePath>>();
             foreach (var t in triangles) {
@@ -537,7 +537,7 @@ namespace Library.PathFinders
                 }
 
                 var edges = t.GetEdges();
-                for (var distance = Math.Ceiling((minDistance - offset) / lineWidth) * lineWidth + offset; distance <= maxDistance; distance += lineWidth) {
+                for (var distance = Math.Ceiling((minDistance - offset) / lineWidth) * lineWidth + paintRadius + offset; distance <= maxDistance; distance += lineWidth) {
                     var minTDistance = basePlane.GetDistance(edges.First().p1);
                     var maxTDistance = basePlane.GetDistance(edges.First().p1);
 
