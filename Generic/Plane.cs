@@ -34,6 +34,17 @@ namespace Library.Generic
             d = aD;
         }
 
+        public Plane(Point normal, Point point) {
+            p1 = null;
+            p2 = null;
+            p3 = null;
+
+            a = normal.x;
+            b = normal.y;
+            c = normal.z;
+            d = -(normal.x * point.x + normal.y * point.y + normal.z * point.z);
+        }
+
         public Point GetNormal() => new Point(a, b, c).Normalized;
 
         public Point GetSomePoint() => new Point(0, 0, -d / c);
