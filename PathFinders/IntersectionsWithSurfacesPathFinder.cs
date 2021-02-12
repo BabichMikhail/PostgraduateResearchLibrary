@@ -537,7 +537,7 @@ namespace Library.PathFinders
                 }
 
                 var edges = t.GetEdges();
-                for (var distance = Math.Ceiling((minDistance - offset) / lineWidth) * lineWidth + paintRadius + offset; distance <= maxDistance; distance += lineWidth) {
+                for (var distance = Math.Ceiling((minDistance - offset) / lineWidth) * lineWidth + offset; distance <= maxDistance; distance += lineWidth) {
                     var minTDistance = basePlane.GetDistance(edges.First().p1);
                     var maxTDistance = basePlane.GetDistance(edges.First().p1);
 
