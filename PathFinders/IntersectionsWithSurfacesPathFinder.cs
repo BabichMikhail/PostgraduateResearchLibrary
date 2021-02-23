@@ -202,7 +202,7 @@ namespace Library.PathFinders
                     {
                         var i0 = 0;
                         var i1 = i0 + 1;
-                        while (i1 < subResult.Count - 1 && (subResult[i0].surfacePoint - subResult[i1].surfacePoint).Magnitude < 30) {
+                        while (i1 < subResult.Count - 1 && (subResult[i0].surfacePoint - subResult[i1].surfacePoint).Magnitude < 5) {
                             ++i1;
                         }
 
@@ -220,7 +220,7 @@ namespace Library.PathFinders
                     {
                         var i0 = subResult.Count - 1;
                         var i1 = i0 - 1;
-                        while (i1 > 0 && (subResult[i0].surfacePoint - subResult[i1].surfacePoint).Magnitude < 30) {
+                        while (i1 > 0 && (subResult[i0].surfacePoint - subResult[i1].surfacePoint).Magnitude < 5) {
                             --i1;
                         }
 
