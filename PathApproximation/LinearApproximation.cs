@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Library.Generic;
 
 namespace Library.PathApproximation
 {
@@ -32,13 +33,13 @@ namespace Library.PathApproximation
             var a21 = t2;
             var a22 = 1;
 
-            var d = GetDeterminant(new List<List<double>>
+            var d = MMath.GetDeterminant(new List<List<double>>
                 {new List<double>{a11, a12}, new List<double>{a21, a22}}
             );
-            var d1 = GetDeterminant(new List<List<double>>
+            var d1 = MMath.GetDeterminant(new List<List<double>>
                 {new List<double>{x1, a12}, new List<double>{x2, a22}}
             );
-            var d2 = GetDeterminant(new List<List<double>>
+            var d2 = MMath.GetDeterminant(new List<List<double>>
                 {new List<double>{a11, x1}, new List<double>{a21, x2}}
             );
 

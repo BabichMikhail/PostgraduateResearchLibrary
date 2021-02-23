@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Library.Generic;
 
 namespace Library.PathApproximation
 {
@@ -52,19 +53,19 @@ namespace Library.PathApproximation
             var a43 = t4;
             var a44 = 1;
 
-            var d = GetDeterminant(new List<List<double>>
+            var d = MMath.GetDeterminant(new List<List<double>>
                 {new List<double>{a11, a12, a13, a14}, new List<double>{a21, a22, a23, a24}, new List<double>{a31, a32, a33, a34}, new List<double>{a41, a42, a43, a44}}
             );
-            var d1 = GetDeterminant(new List<List<double>>
+            var d1 = MMath.GetDeterminant(new List<List<double>>
                 {new List<double>{x1, a12, a13, a14}, new List<double>{x2, a22, a23, a24}, new List<double>{x3, a32, a33, a34}, new List<double>{x4, a42, a43, a44}}
             );
-            var d2 = GetDeterminant(new List<List<double>>
+            var d2 = MMath.GetDeterminant(new List<List<double>>
                 {new List<double>{a11, x1, a13, a14}, new List<double>{a21, x2, a23, a24}, new List<double>{a31, x3, a33, a34}, new List<double>{a41, x4, a43, a44}}
             );
-            var d3 = GetDeterminant(new List<List<double>>
+            var d3 = MMath.GetDeterminant(new List<List<double>>
                 {new List<double>{a11, a12, x1, a14}, new List<double>{a21, a22, x2, a24}, new List<double>{a31, a32, x3, a34}, new List<double>{a41, a42, x4, a44}}
             );
-            var d4 = GetDeterminant(new List<List<double>>
+            var d4 = MMath.GetDeterminant(new List<List<double>>
                 {new List<double>{a11, a12, a13, x1}, new List<double>{a21, a22, a23, x2}, new List<double>{a31, a32, a33, x3}, new List<double>{a41, a42, a43, x4}}
             );
 

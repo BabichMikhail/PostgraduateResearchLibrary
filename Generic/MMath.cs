@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Library.Generic
 {
@@ -21,5 +22,38 @@ namespace Library.Generic
         public static float Cos(float d) => (float)Math.Cos(d);
         public static float Sin(float d) => (float)Math.Sin(d);
         public static float Round(float d) => (float)Math.Round(d);
+
+        public static double GetDeterminant(List<List<double>> c) {
+            if (c.Count > 2) {
+                var result = 0.0;
+                for (var i = 0; i < c.Count; ++i) {
+                    var m = new List<List<double>>();
+                    for (var j = 1; j < c.Count; ++j) {
+                        var line = new List<double>();
+                        for (var k = 0; k < c.Count; ++k) {
+                            if (k != i) {
+                                line.Add(c[j][k]);
+                            }
+                        }
+
+                        m.Add(line);
+                    }
+
+                    result += c[0][i] * (float) Math.Pow(-1, i) * GetDeterminant(m);
+                }
+
+                return result;
+            }
+
+            if (c.Count == 2) {
+                return c[0][0] * c[1][1] - c[0][1] * c[1][0];
+            }
+
+            if (c.Count == 1) {
+                return c[0][0];
+            }
+
+            throw new Exception("Not implemented");
+        }
     }
 }
