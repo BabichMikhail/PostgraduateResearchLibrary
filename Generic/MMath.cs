@@ -17,6 +17,8 @@ namespace Library.Generic
         // For disjoint edges only!
         public static double GetDistance(Edge edge1, Edge edge2) => Math.Min(GetDistance(edge1, edge2.p1), GetDistance(edge1, edge2.p2));
 
+        public static double GetDistance(Triangle t, Point p) => Math.Min(Math.Min(GetDistance(t.p1, p), GetDistance(t.p2, p)), GetDistance(t.p3, p));
+
         public static double Dot(Point p1, Point p2) => p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 
         public static float Cos(float d) => (float)Math.Cos(d);
