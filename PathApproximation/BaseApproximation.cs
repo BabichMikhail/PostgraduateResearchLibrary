@@ -219,7 +219,7 @@ namespace Library.PathApproximation
             var newNormals = new List<Point>();
             {
                 var i0 = 0;
-                for (var h = 0.0f; h < maxT; h += step) {
+                for (var h = 0.0f; h <= maxT; h += step) {
                     var count = 0;
                     var surfacePoint = new Point(0, 0, 0);
                     var originPoint = new Point(0, 0, 0);
@@ -289,6 +289,9 @@ namespace Library.PathApproximation
                 }
             }
 
+            if (nearestT is null) {
+                throw new Exception();
+            }
 
             var result = new List<Triangle>();
             var processedTriangles = new Dictionary<Triangle, bool>();
