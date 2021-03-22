@@ -35,17 +35,7 @@ namespace Library.PathFinders
             paintLongitudinalAllowance = aPaintLongitudinalAllowance;
         }
 
-        Point PreparePoint(Point v) {
-            var precision = 1e4f;
-            return new Point(MMath.Round(v.x * precision) / precision, MMath.Round(v.y * precision) / precision, MMath.Round(v.z * precision) / precision);
-        }
-
-        public List<Position> GetPath(ref List<Triangle> originTriangles) {
-            var triangles = new List<Triangle>();
-            foreach (var t in originTriangles) {
-                triangles.Add(new Triangle(PreparePoint(t.p1), PreparePoint(t.p2), PreparePoint(t.p3)));
-            }
-
+        public List<Position> GetPath(List<Triangle> triangles) {
             var a = new Point(1, 0, 0);
             var b = new Point(1, 1, 0);
             var c = new Point(1, 1, 1);
