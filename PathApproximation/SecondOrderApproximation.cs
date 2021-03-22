@@ -91,7 +91,5 @@ namespace Library.PathApproximation
 
             return e;
         }
-
-        public override int GetInfluenceRadius() => GetTXLength();
     }
 }

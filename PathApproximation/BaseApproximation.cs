@@ -289,6 +289,7 @@ namespace Library.PathApproximation
                 }
             }
 
+
             var result = new List<Triangle>();
             var processedTriangles = new Dictionary<Triangle, bool>();
             var queue = new Queue<Triangle>();
@@ -355,7 +356,5 @@ namespace Library.PathApproximation
 
             return result;
         }
-
-        public abstract int GetInfluenceRadius();
     }
 }

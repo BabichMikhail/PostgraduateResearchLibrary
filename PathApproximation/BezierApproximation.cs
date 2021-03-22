@@ -61,7 +61,6 @@ namespace Library.PathApproximation
             return new BezierEquation(tMin, tMax, xs);
         }
 
-        public override int GetInfluenceRadius() => GetTXLength();
     }
 
     public class Bezier2Approximation : BezierApproximation {
