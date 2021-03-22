@@ -23,6 +23,8 @@ namespace Library.Generic
 
         public float Dz() => p2.z - p1.z;
 
+        public float Length() => (p2 - p1).Magnitude;
+
         public static bool operator ==(Edge a, Edge b) => a.p1 == b.p1 && a.p2 == b.p2 || a.p1 == b.p2 && a.p2 == b.p1;
 
         public static bool operator !=(Edge a, Edge b) => !(a == b);
