@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Library.Generic
 {
@@ -14,6 +15,16 @@ namespace Library.Generic
         }
     }
 
+    public class SphereEdge {
+        public readonly SpherePoint p1;
+        public readonly SpherePoint p2;
+
+        public SphereEdge(SpherePoint aP1, SpherePoint aP2) {
+            p1 = aP1;
+            p2 = aP2;
+        }
+    }
+
     public class SphereTriangle {
         public readonly SpherePoint p1;
         public readonly SpherePoint p2;
@@ -21,10 +32,18 @@ namespace Library.Generic
 
         private Triangle originTriangle;
 
-        public SphereTriangle(SphereCoordinatesTransformer transformer, Triangle t) {
-            p1 = transformer.Transform(t.p1);
-            p2 = transformer.Transform(t.p2);
-            p3 = transformer.Transform(t.p3);
+        public SphereTriangle(SpherePoint aP1, SpherePoint aP2, SpherePoint aP3) {
+            p1 = aP1;
+            p2 = aP2;
+            p3 = aP3;
+        }
+
+        public List<SphereEdge> GetEdges() {
+            return new List<SphereEdge> {
+                new SphereEdge(p1, p2),
+                new SphereEdge(p1, p3),
+                new SphereEdge(p2, p3),
+            };
         }
     }
 
@@ -47,6 +66,14 @@ namespace Library.Generic
                 p.r * (float)Math.Sin(p.theta) * (float)Math.Sin(p.phi),
                 p.r * (float)Math.Cos(p.theta)
             ) + origin;
+        }
+
+        public SphereTriangle Transform(Triangle t) {
+            return new SphereTriangle(Transform(t.p1), Transform(t.p2), Transform(t.p3));
+        }
+
+        public Triangle InverseTransform(SphereTriangle t) {
+            return new Triangle(InverseTransform(t.p1), InverseTransform(t.p2), InverseTransform(t.p3));
         }
     }
 }
