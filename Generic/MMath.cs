@@ -25,6 +25,7 @@ namespace Library.Generic
         public static float Cos(float d) => (float)Math.Cos(d);
         public static float Sin(float d) => (float)Math.Sin(d);
         public static float Acos(float d) => (float)Math.Acos(d);
+        public static float Tan(float d) => (float)Math.Tan(d);
         public static float Round(float d) => (float)Math.Round(d);
         public static float Sqrt(float x) => (float)Math.Sqrt(x);
         public static float Pow(float x, float y) => (float)Math.Pow(x, y);

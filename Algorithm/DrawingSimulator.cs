@@ -81,13 +81,7 @@ namespace Library.Algorithm
                 }
             }
 
-            Point basePoint = null;
-            foreach (var p in points) {
-                if (p != longestEdge.p1 && p != longestEdge.p2) {
-                    basePoint = p;
-                    break;
-                }
-            }
+            var basePoint = points.FirstOrDefault(p => p != longestEdge.p1 && p != longestEdge.p2);
 
             var result = new List<Triangle>();
             var from = longestEdge.p1;
@@ -101,8 +95,6 @@ namespace Library.Algorithm
             }
             result.Add(BuildTriangleWithLikeNormal(t, basePoint, lastPoint, to));
 
-            var squares = new List<float>{t.GetSquare()};
-            result.ForEach(x => squares.Add(x.GetSquare()));
             return result;
         }
 
@@ -135,8 +127,6 @@ namespace Library.Algorithm
                 }
             }
 
-            var squares = new List<float>{triangle.GetSquare()};
-            result.ForEach(x => squares.Add(x.GetSquare()));
             return result;
         }
 
@@ -152,7 +142,7 @@ namespace Library.Algorithm
             return result;
         }
 
-        public DrawingResult ProcessPath(List<Position> path, List<Triangle> triangles, float maxR, float paintHeight, float maxTriangleSquare) {
+        public DrawingResult ProcessPath(List<Position> path, List<Triangle> triangles, float maxR, float paintRadius, float paintHeight, float maxTriangleSquare) {
             var maxSquare = maxTriangleSquare;
             var maxSideLength = (float)Math.Sqrt(2 * maxSquare);
             var triangleReplacements = SplitTriangles(triangles, maxSquare, maxSideLength);
@@ -215,18 +205,19 @@ namespace Library.Algorithm
                     if (item.Value == 3) {
                         // sphereTriangles.Add(sphereTransformer.Transform(t));
 
-                        var r = MMath.GetDistance(t, position.originPoint);
+                        var r = (float)MMath.GetDistance(t, position.originPoint);
                         if (r < maxR) {
-                            var points = t.GetPoints();
-                            var center = points.Aggregate((current, point) => current + point) / points.Count;
+                            foreach (var p in t.GetPoints()) {
+                                var direction = (t.o - position.originPoint).Normalized;
 
-                            var x = MMath.Sin(MMath.Acos(MMath.Dot(position.paintDirection.Normalized, (center - position.originPoint).Normalized)));
-                            var density = MMath.GetNormalDistributionProbabilityDensity(x, 0.0f, 0.33f);
-
-                            foreach (var p in points) {
-                                var cos = MMath.Dot(-t.GetNormal().Normalized, position.paintDirection.Normalized);
+                                var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
                                 if (cos > 0) {
-                                    colorInfo[t][p] += new Color((float)(density * cos * paintHeight / r), 0, 0);
+                                    var dot = MMath.Dot(position.paintDirection, direction);
+                                    dot = MMath.Round(dot * 1e6f) / 1e6f;
+                                    var x = MMath.Sqrt(1 - dot * dot) / dot;
+                                    var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * x, 0.0f, paintRadius / 3.0f);
+
+                                    colorInfo[t][p] += new Color(density * cos * MMath.Pow(paintHeight / r, 2), 0, 0);
                                     maxBrightness = Math.Max(colorInfo[t][p].r, maxBrightness);
                                 }
                             }
