@@ -108,6 +108,7 @@ namespace Library.RobotPathBuilder {
                 else {
                     lastMoveDistance += distance * currentRobotPosition.speedMultiplier;
 
+                    // TODO fix direction and surface point;
                     var k = distance * currentRobotPosition.speedMultiplier / length;
                     var newPoint = currentRobotPosition.point + k * (positions[currentPos + 1].point - currentRobotPosition.point);
                     currentRobotPosition = new RobotPosition(newPoint, positions[currentPos].direction, positions[currentPos].position, positions[currentPos].speedMultiplier);
@@ -131,15 +132,15 @@ namespace Library.RobotPathBuilder {
             return currentPos == positions.Count - 1;
         }
 
-        public RobotPath GetRobotPathData(float paintSpeed) {
+        public RobotPath GetRobotPathData() {
             var pathItems = new List<RobotPathItem>();
             var i = 0;
             foreach (var pos in GetRobotPositions()) {
-                pathItems.Add(new RobotPathItem(pos.position, GetAcceleration(i), pos.speedMultiplier * paintSpeed));
+                pathItems.Add(new RobotPathItem(pos.position, GetAcceleration(i), pos.speedMultiplier * speed));
                 ++i;
             }
 
-            return new RobotPath(pathItems, paintSpeed);
+            return new RobotPath(pathItems, speed);
         }
     }
 
@@ -167,8 +168,8 @@ namespace Library.RobotPathBuilder {
             foreach (var positions in SplitPositions(mergedPositions)) {
                 var robotPositions = new List<RobotPosition>();
                 for (var i = 0; i < positions.Count; ++i) {
-                    var speedMultiplier = 1.0f;
-                    if (i < positions.Count - 1) {
+                    var speedMultiplier = 1.0f; // TODO set to 0 and fix move robots;
+                    if (i > 0 && i < positions.Count - 1) {
                         if (positions[i].originPoint == positions[i + 1].originPoint) {
                             throw new Exception("Illegal positions");
                         }
