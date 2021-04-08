@@ -65,9 +65,9 @@ namespace Library.PathFinders
 
             foreach (var t in triangles) {
                 foreach (var p in t.GetPoints()) {
-                    basePlaneD = Math.Min((float)basePlane.GetDistance(p), basePlaneD);
-                    plane1D = Math.Min((float)plane1.GetDistance(p), plane1D);
-                    plane2D = Math.Min((float)plane2.GetDistance(p), plane2D);
+                    basePlaneD = Math.Min((float)MMath.GetDistance(basePlane, p), basePlaneD);
+                    plane1D = Math.Min((float)MMath.GetDistance(plane1, p), plane1D);
+                    plane2D = Math.Min((float)MMath.GetDistance(plane2, p), plane2D);
                 }
             }
 
@@ -76,11 +76,11 @@ namespace Library.PathFinders
             plane2.d += (plane2D - 15 - paintLateralAllowance) * (float)plane2.GetDenominator();
 
             {
-                var maxDistance = plane2.GetDistance(plane1.GetSomePoint());
+                var maxDistance = MMath.GetDistance(plane2, plane1);//.GetSomePoint()));
                 foreach (var t in triangles) {
                     foreach (var p in t.GetPoints()) {
-                        Debug.Assert(plane1.GetDistance(p) < maxDistance);
-                        Debug.Assert(plane2.GetDistance(p) < maxDistance);
+                        Debug.Assert(MMath.GetDistance(plane1, p) < maxDistance);
+                        Debug.Assert(MMath.GetDistance(plane2, p) < maxDistance);
                     }
                 }
             }
@@ -229,8 +229,8 @@ namespace Library.PathFinders
         }
 
         Point GetPointUsingBinarySearch(Point a, Point b, Plane basePlane, double distance) {
-            var da = basePlane.GetDistance(a);
-            var db = basePlane.GetDistance(b);
+            var da = MMath.GetDistance(basePlane, a);
+            var db = MMath.GetDistance(basePlane, b);
             if (da > db) {
                 MUtils.Swap(ref a, ref b);
                 MUtils.Swap(ref da, ref db);
@@ -238,7 +238,7 @@ namespace Library.PathFinders
 
             while (Math.Abs(da - distance) > 1e-4) {
                 var p = (a + b) / 2;
-                var dp = basePlane.GetDistance(p);
+                var dp = MMath.GetDistance(basePlane, p);
 
                 if (Math.Abs(dp - distance) <= 1e-4 || dp <= distance) {
                     a = p;
@@ -319,7 +319,7 @@ namespace Library.PathFinders
         }
 
         Edge GetDirectedEdge(Plane plane, Edge e) {
-            return plane.GetDistance(e.p1) < plane.GetDistance(e.p2) ? new Edge(e.p1, e.p2) : new Edge(e.p2, e.p1);
+            return MMath.GetDistance(plane, e.p1) < MMath.GetDistance(plane, e.p2) ? new Edge(e.p1, e.p2) : new Edge(e.p2, e.p1);
         }
 
         public List<List<Position>> GetBodyPositions(List<Edge> edges, Plane fromPlane, Plane toPlane, Dictionary<Edge, Point> normalByEdge) {
@@ -365,9 +365,9 @@ namespace Library.PathFinders
                                     }
 
                                     cFromPlane = de.GetPlane();
-                                    cFromPlane.d += (float)(cFromPlane.GetDenominator() * fromPlane.GetDistance(de.p2));
-                                    UnityEngine.Debug.Assert(cFromPlane.GetDistance(de.p1) < cFromPlane.GetDistance(de.p2));
-                                    minDistance = cFromPlane.GetDistance(de.p2);
+                                    cFromPlane.d += (float)(cFromPlane.GetDenominator() * MMath.GetDistance(fromPlane, de.p2));
+                                    UnityEngine.Debug.Assert(MMath.GetDistance(cFromPlane, de.p1) < MMath.GetDistance(cFromPlane, de.p2));
+                                    minDistance = MMath.GetDistance(cFromPlane, de.p2);
                                 }
 
                                 if (isNewPath) {
@@ -508,7 +508,7 @@ namespace Library.PathFinders
             var minDistanceToFigure = 1e9;
             foreach (var t in triangles) {
                 foreach (var p in t.GetPoints()) {
-                    minDistanceToFigure = Math.Min(minDistanceToFigure, basePlane.GetDistance(p));
+                    minDistanceToFigure = Math.Min(minDistanceToFigure, MMath.GetDistance(basePlane, p));
                 }
             }
             var offset = minDistanceToFigure - paintLateralAllowance;
@@ -517,23 +517,23 @@ namespace Library.PathFinders
             var edgeByAddedPoint = new Dictionary<Point, Edge>();
             var pathPartsByDistance = new Dictionary<double, List<TrianglePath>>();
             foreach (var t in triangles) {
-                var minDistance = basePlane.GetDistance(t.p1);
-                var maxDistance = basePlane.GetDistance(t.p1);
+                var minDistance = MMath.GetDistance(basePlane, t.p1);
+                var maxDistance = MMath.GetDistance(basePlane, t.p1);
 
                 foreach (var v in new List<Point>{t.p2, t.p3}) {
-                    var distance = basePlane.GetDistance(v);
+                    var distance = MMath.GetDistance(basePlane, v);
                     minDistance = Math.Min(minDistance, distance);
                     maxDistance = Math.Max(maxDistance, distance);
                 }
 
                 var edges = t.GetEdges();
                 for (var distance = Math.Ceiling((minDistance - offset) / lineWidth) * lineWidth + offset; distance <= maxDistance; distance += lineWidth) {
-                    var minTDistance = basePlane.GetDistance(edges.First().p1);
-                    var maxTDistance = basePlane.GetDistance(edges.First().p1);
+                    var minTDistance = MMath.GetDistance(basePlane, edges.First().p1);
+                    var maxTDistance = MMath.GetDistance(basePlane, edges.First().p1);
 
                     foreach (var e in edges) {
                         foreach (var p in e.GetPoints()) {
-                            var d = basePlane.GetDistance(p);
+                            var d = MMath.GetDistance(basePlane, p);
                             maxTDistance = Math.Max(d, maxTDistance);
                             minTDistance = Math.Min(d, minTDistance);
                         }
@@ -542,14 +542,14 @@ namespace Library.PathFinders
                     var vertices = new List<Point>();
                     if (maxTDistance - minTDistance >= 0) {
                         foreach (var e in edges) {
-                            var d1 = basePlane.GetDistance(e.p1);
-                            var d2 = basePlane.GetDistance(e.p2);
+                            var d1 = MMath.GetDistance(basePlane, e.p1);
+                            var d2 = MMath.GetDistance(basePlane, e.p2);
 
                             var minD = Math.Min(d1, d2);
                             var maxD = Math.Max(d1, d2);
                             if (maxD >= minD && minD <= distance && distance <= maxD) {
                                 var point = GetPointUsingBinarySearch(e.p1, e.p2, basePlane, distance);
-                                if (Math.Abs(basePlane.GetDistance(point) - distance) > 1e-4) {
+                                if (Math.Abs(MMath.GetDistance(basePlane, point) - distance) > 1e-4) {
                                     Debug.Assert(false);
                                 }
 
