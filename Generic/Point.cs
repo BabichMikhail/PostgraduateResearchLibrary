@@ -13,10 +13,16 @@ namespace Library.Generic
             z = az;
         }
 
-        public float Magnitude => (float)Math.Sqrt(SqrMagnitude);
-        public float SqrMagnitude => x * x + y * y + z * z;
-        public Point Normalized => new Point(x, y, z) / Magnitude;
+        public double Magnitude => Math.Sqrt(SqrMagnitude);
+        public double SqrMagnitude => x * x + y * y + z * z;
+        public Point Normalized => new Point(x, y, z) / (float)Magnitude;
         public static Point Zero => new Point(0, 0, 0);
+        public static Point Up => new Point(0, 1, 0);
+        public static Point Down => new Point(0, -1, 0);
+        public static Point Left => new Point(-1, 0, 0);
+        public static Point Right => new Point(1, 0, 0);
+        public static Point Forward => new Point(0, 0, 1);
+        public static Point Back => new Point(0, 0, -1);
 
         public static Point operator +(Point a, Point b) => new Point(a.x + b.x, a.y + b.y, a.z + b.z);
         public static Point operator -(Point a, Point b) => new Point(a.x - b.x, a.y - b.y, a.z - b.z);

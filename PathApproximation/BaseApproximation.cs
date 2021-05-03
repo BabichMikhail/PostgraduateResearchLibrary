@@ -251,7 +251,7 @@ namespace Library.PathApproximation
                 }
             }
 
-            var paintHeight = (positions[0].originPoint - positions[0].surfacePoint).Magnitude;
+            var paintHeight = (float)(positions[0].originPoint - positions[0].surfacePoint).Magnitude;
             var result = new List<Position>();
             for (var i = 0; i < newSurfacePoints.Count; ++i) {
                 var positionType = Position.PositionType.Middle;

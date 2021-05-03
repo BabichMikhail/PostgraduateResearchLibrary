@@ -56,7 +56,7 @@ namespace Library.Generic
 
         public SpherePoint Transform(Point p) {
             p -= origin;
-            var r = p.Magnitude;
+            var r = (float)p.Magnitude;
             return new SpherePoint(r, (float)Math.Acos(p.z / r), (float)Math.Atan(p.y / p.z));
         }
 

@@ -51,7 +51,7 @@ namespace Library.PathFinders
             var maxPlaneD = 0.0f;
             foreach (var t in triangles) {
                 foreach (var p in t.GetPoints()) {
-                    maxPlaneD = Math.Max(p.Magnitude, maxPlaneD);
+                    maxPlaneD = Math.Max((float)p.Magnitude, maxPlaneD);
                 }
             }
 
@@ -568,9 +568,6 @@ namespace Library.PathFinders
                         }
                         else if (fPoints.Count == 2) {
                             newEdge = new Edge(fPoints[0], fPoints[1]);
-                            if (fPoints[0].z > 1022 && fPoints[0].z < 1023 || fPoints[1].z > 1022 && fPoints[1].z < 1023) {
-                                Debug.Assert(false);
-                            }
                         }
                         else {
                             Debug.Assert(false);

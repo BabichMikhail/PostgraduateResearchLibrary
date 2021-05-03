@@ -2,15 +2,15 @@ using System;
 
 namespace Library.Generic
 {
-    public struct Plane {
+    public class Plane {
         public readonly float a;
         public readonly float b;
         public readonly float c;
         public float d;
 
-        private readonly Point p1;
-        private readonly Point p2;
-        private readonly Point p3;
+        public readonly Point p1;
+        public readonly Point p2;
+        public readonly Point p3;
 
         public Plane(Point aP1, Point aP2, Point aP3) {
             p1 = aP1;

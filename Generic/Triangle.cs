@@ -10,9 +10,9 @@ namespace Library.Generic
         public readonly Point o;
         private readonly Point rawN;
 
-        public readonly float l1;
-        public readonly float l2;
-        public readonly float l3;
+        public readonly double l1;
+        public readonly double l2;
+        public readonly double l3;
 
         public Triangle(Point aP1, Point aP2, Point aP3) {
             p1 = aP1;
@@ -24,9 +24,9 @@ namespace Library.Generic
             l3 = (p1 - p2).Magnitude;
 
             o = new Point(
-                (l3 * p3.x + l2 * p2.x + l1 * p1.x) / (l3 + l2 + l1),
-                (l3 * p3.y + l2 * p2.y + l1 * p1.y) / (l3 + l2 + l1),
-                (l3 * p3.z + l2 * p2.z + l1 * p1.z) / (l3 + l2 + l1)
+                (float)((l3 * p3.x + l2 * p2.x + l1 * p1.x) / (l3 + l2 + l1)),
+                (float)((l3 * p3.y + l2 * p2.y + l1 * p1.y) / (l3 + l2 + l1)),
+                (float)((l3 * p3.z + l2 * p2.z + l1 * p1.z) / (l3 + l2 + l1))
             );
         }
 
@@ -55,11 +55,11 @@ namespace Library.Generic
             return edges;
         }
 
-        public float GetPerimeter() => l1 + l2 + l3;
+        public float GetPerimeter() => (float)(l1 + l2 + l3);
 
         public float GetSemiPerimeter() => GetPerimeter() / 2;
 
-        public float GetRadiusOfTheCircumscribedCircle() => l1 * l2 * l3 / 4 / GetSquare();
+        public float GetRadiusOfTheCircumscribedCircle() => (float)(l1 * l2 * l3) / 4 / GetSquare();
 
         public float GetSquare() {
             var p = GetSemiPerimeter();

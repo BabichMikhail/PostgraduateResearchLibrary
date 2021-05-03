@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Library.Generic
 {
     public class Line {
@@ -11,6 +13,7 @@ namespace Library.Generic
         public readonly float x0;
         public readonly float y0;
         public readonly float z0;
+
         public Line(Point aP1, Point aP2) {
             p1 = aP1;
             p2 = aP2;
@@ -25,6 +28,9 @@ namespace Library.Generic
             y0 = p1.y;
             z0 = p1.z;
         }
+
+        public List<Point> GetPoints() => new List<Point>{p1, p2};
+        public double GetLength() => MMath.GetDistance(p1, p2);
 
         public override int GetHashCode() => new Point(x0, y0, z0).GetHashCode() + new Point(p0X, p0Y, p0Z).GetHashCode();
     }

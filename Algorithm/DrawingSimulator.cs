@@ -109,7 +109,7 @@ namespace Library.Algorithm
             while (q.Count > 0) {
                 var t = q.Dequeue();
 
-                var sideLength = 0.0f;
+                var sideLength = 0.0;
                 t.GetEdges().ForEach(x => sideLength = Math.Max(sideLength, x.Length()));
 
                 var s = t.GetSquare();
@@ -146,7 +146,7 @@ namespace Library.Algorithm
 
         public DrawingResult ProcessPath(
             List<RobotPath> paths, List<Triangle> triangles, float maxR, float paintRadius, float paintHeight, float maxTriangleSquare,
-            float paintConsumptionRateCubicMeterPerSecond
+            float paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
         ) {
             var maxSquare = maxTriangleSquare;
             var maxSideLength = (float)Math.Sqrt(2 * maxSquare);
@@ -251,7 +251,7 @@ namespace Library.Algorithm
                                         var x = MMath.Sqrt(1 - dot * dot) / dot;
                                         var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * x, 0.0f, paintRadius / 3.0f);
 
-                                        var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateCubicMeterPerSecond * time;
+                                        var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
                                         paintAmount[t][p] += k;
                                         colorInfo[t][p] += new Color(k, 0, 0);
                                         maxBrightness = Math.Max(colorInfo[t][p].r, maxBrightness);
