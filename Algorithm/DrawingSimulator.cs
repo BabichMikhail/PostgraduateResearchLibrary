@@ -24,8 +24,7 @@ namespace Library.Algorithm
         public static Color operator -(Color a, Color b) => new Color(a.r - b.r, a.g - b.g, a.b - b.b, a.a - b.a);
     }
 
-    public class DrawingResult {
-        public Dictionary<Triangle, List<Triangle>> replacements;
+    public class TexturePaintResult {
         public Dictionary<Triangle, Dictionary<Point, Color>> colorInfo;
         public Dictionary<Triangle, Dictionary<Point, float>> paintAmount;
         public List<Triangle> triangles;
@@ -144,7 +143,7 @@ namespace Library.Algorithm
             return result;
         }
 
-        public DrawingResult ProcessPath(
+        public TexturePaintResult ProcessPath(
             List<RobotPath> paths, List<Triangle> triangles, float maxR, float paintRadius, float paintHeight, float maxTriangleSquare,
             float paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
         ) {
@@ -285,8 +284,7 @@ namespace Library.Algorithm
                 finalColorInfo.Add(tColors.Key, pointColors);
             }
 
-            return new DrawingResult {
-                replacements = triangleReplacements,
+            return new TexturePaintResult {
                 colorInfo = finalColorInfo,
                 paintAmount = paintAmount,
                 triangles = customTriangles,
