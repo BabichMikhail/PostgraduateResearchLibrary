@@ -27,12 +27,14 @@ namespace Library.PathFinders
         private readonly float paintHeight;
         private readonly float paintLateralAllowance;
         private readonly float paintLongitudinalAllowance;
+        private readonly float paintLineWidth;
 
-        public IntersectionsWithSurfacesPathFinder(float aPaintRadius, float aPaintHeight, float aPaintLateralAllowance, float aPaintLongitudinalAllowance) {
+        public IntersectionsWithSurfacesPathFinder(float aPaintRadius, float aPaintHeight, float aPaintLateralAllowance, float aPaintLongitudinalAllowance, float aPaintLineWidth) {
             paintRadius = aPaintRadius;
             paintHeight = aPaintHeight;
             paintLateralAllowance = aPaintLateralAllowance;
             paintLongitudinalAllowance = aPaintLongitudinalAllowance;
+            paintLineWidth = aPaintLineWidth;
         }
 
         public List<Position> GetPath(List<Triangle> triangles) {
@@ -160,12 +162,7 @@ namespace Library.PathFinders
 
             var pathPartsByDistance = fixedPathPartsByDistance;
             var result = new List<Position>();
-            // For debug. We can specify distance from fromPlane to pathParts
-            // var lineNumber = 1;
             foreach (var pathPart in pathPartsByDistance) {
-                // if (!(pathPart.Key > 1950 - lineNumber * 200 && pathPart.Key < 2150 - lineNumber * 200)) {
-                //     continue;
-                // }
                 var fromPlane = plane1;
                 var toPlane = plane2;
 
@@ -513,7 +510,6 @@ namespace Library.PathFinders
             }
             var offset = minDistanceToFigure - paintLateralAllowance;
 
-            var lineWidth = 2 * paintRadius;
             var edgeByAddedPoint = new Dictionary<Point, Edge>();
             var pathPartsByDistance = new Dictionary<double, List<TrianglePath>>();
             foreach (var t in triangles) {
@@ -527,7 +523,7 @@ namespace Library.PathFinders
                 }
 
                 var edges = t.GetEdges();
-                for (var distance = Math.Ceiling((minDistance - offset) / lineWidth) * lineWidth + offset; distance <= maxDistance; distance += lineWidth) {
+                for (var distance = Math.Ceiling((minDistance - offset) / paintLineWidth) * paintLineWidth + offset; distance <= maxDistance; distance += paintLineWidth) {
                     var minTDistance = MMath.GetDistance(basePlane, edges.First().p1);
                     var maxTDistance = MMath.GetDistance(basePlane, edges.First().p1);
 

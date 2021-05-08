@@ -14,11 +14,14 @@ namespace PathFinders
     }
 
     public static class PathFinderFactory {
-        public static IPathFinder Create(PathFinderType type, float paintRadius, float paintHeight, float paintLateralAllowance, float paintLongitudinalAllowance) {
+        public static IPathFinder Create(
+            PathFinderType type, float paintRadius, float paintHeight, float paintLateralAllowance, float paintLongitudinalAllowance,
+            float paintLineWidth
+        ) {
             IPathFinder result = null;
             switch (type) {
                 case PathFinderType.IntersectionsWithSurfacesPathFinder:
-                    result = new IntersectionsWithSurfacesPathFinder(paintRadius, paintHeight, paintLateralAllowance, paintLongitudinalAllowance);
+                    result = new IntersectionsWithSurfacesPathFinder(paintRadius, paintHeight, paintLateralAllowance, paintLongitudinalAllowance, paintLineWidth);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
