@@ -218,7 +218,6 @@ namespace Library.PathApproximation
             var newOriginPoints = new List<Point>();
             var newNormals = new List<Point>();
             {
-                var i0 = 0;
                 for (var h = 0.0f; h <= maxT; h += step) {
                     var count = 0;
                     var surfacePoint = new Point(0, 0, 0);
@@ -237,18 +236,26 @@ namespace Library.PathApproximation
                             var nz = zNormalEquations[i].GetValue(h);
 
                             if (!(sx is double.NaN) && !(sy is double.NaN) && !(sz is double.NaN)) {
+                                ++count;
                                 surfacePoint += new Point((float)sx, (float)sy, (float)sz);
                                 originPoint += new Point((float)ox, (float)oy, (float)oz);
                                 normal += new Point((float)nx, (float)ny, (float)nz);
-                                ++count;
                             }
                         }
                     }
 
-                    newSurfacePoints.Add(surfacePoint / count);
-                    newOriginPoints.Add(originPoint / count);
-                    newNormals.Add(normal / count);
+                    if (count > 0) {
+                        newSurfacePoints.Add(surfacePoint / count);
+                        newOriginPoints.Add(originPoint / count);
+                        newNormals.Add(normal / count);
+                    }
                 }
+            }
+
+            if (newSurfacePoints.Count == 0) {
+                newSurfacePoints = surfacePoints;
+                newOriginPoints = originPoints;
+                newNormals = normals;
             }
 
             var paintHeight = (float)(positions[0].originPoint - positions[0].surfacePoint).Magnitude;
