@@ -25,7 +25,6 @@ namespace Library.Algorithm
     }
 
     public class TexturePaintResult {
-        public Dictionary<Triangle, Dictionary<Point, Color>> colorInfo;
         public Dictionary<Triangle, Dictionary<Point, float>> paintAmount;
         public List<Triangle> triangles;
     }
@@ -58,9 +57,12 @@ namespace Library.Algorithm
         private float XFunc(Triangle t) => Math.Min(Math.Min(t.p1.x, t.p2.x), t.p3.x);
         private float YFunc(Triangle t) => Math.Min(Math.Min(t.p1.y, t.p2.y), t.p3.y);
         private float ZFunc(Triangle t) => Math.Min(Math.Min(t.p1.z, t.p2.z), t.p3.z);
-        private float RFunc(SphereTriangle t) => Math.Min(Math.Min(t.p1.r, t.p2.r), t.p2.r);
-        private float PhiFunc(SphereTriangle t) => Math.Min(Math.Min(t.p1.phi, t.p2.phi), t.p3.phi);
-        private float ThetaFunc(SphereTriangle t) => Math.Min(Math.Min(t.p1.theta, t.p2.theta), t.p3.theta);
+        private float RMinFunc(SphereTriangle t) => t.minR;
+        private float RMaxFunc(SphereTriangle t) => t.maxR;
+        private float PhiMinFunc(SphereTriangle t) => t.minPhi;
+        private float PhiMaxFunc(SphereTriangle t) => t.maxPhi;
+        private float ThetaMinFunc(SphereTriangle t) => t.minTheta;
+        private float ThetaMaxFunc(SphereTriangle t) => t.maxTheta;
 
         private Triangle BuildTriangleWithLikeNormal(Triangle t, Point p1, Point p2, Point p3) {
             var newTriangle = new Triangle(p1, p2, p3);
@@ -112,15 +114,7 @@ namespace Library.Algorithm
                 t.GetEdges().ForEach(x => sideLength = Math.Max(sideLength, x.Length()));
 
                 var s = t.GetSquare();
-                if (s > maxSquare) {
-                    var cuts = 2;
-                    if (s / maxSquare > 2 && s / maxSquare <= 3) {
-                        cuts = 3;
-                    }
-
-                    SplitTriangleByLongSide(t, cuts).ForEach(x => q.Enqueue(x));
-                }
-                else if (sideLength > maxSideLength) {
+                if (s > maxSquare || sideLength > maxSideLength) {
                     SplitTriangleByLongSide(t, 2).ForEach(x => q.Enqueue(x));
                 }
                 else if (triangle != t) {
@@ -148,7 +142,7 @@ namespace Library.Algorithm
             float paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
         ) {
             var maxSquare = maxTriangleSquare;
-            var maxSideLength = (float)Math.Sqrt(2 * maxSquare);
+            var maxSideLength = (float)Math.Sqrt(maxSquare);
             var triangleReplacements = SplitTriangles(triangles, maxSquare, maxSideLength);
 
             var customTriangles = new List<Triangle>();
@@ -172,13 +166,10 @@ namespace Library.Algorithm
                 return d / vm;
             }
 
-            var colorInfo = new Dictionary<Triangle, Dictionary<Point, Color>>();
             var paintAmount = new Dictionary<Triangle, Dictionary<Point, float>>();
-            var maxBrightness = 0.0f;
             foreach (var path in paths) {
                 for (var i = 0; i < path.items.Count; ++i) {
                     var time = 0.0f;
-                    var length = 0.0f;
                     if (i > 0) {
                         time += GetPaintTime(path.items[i], path.items[i - 1]);
                     }
@@ -212,80 +203,101 @@ namespace Library.Algorithm
                     var n3 = new Point(n1.y * n2.z - n1.z * n2.y, n1.z * n2.x - n1.x * n2.z, n1.x * n2.y - n1.y * n2.x).Normalized;
                     var sphereTransformer = new SphereCoordinatesTransformer(position.originPoint);
 
-                    // var sphereTriangles = new List<SphereTriangle>();
-                    // var trianglesForPosition = new List<Triangle>();
+                    var trianglesForPosition = new List<Triangle>();
                     foreach (var kv in trianglesSet) {
                         var t = kv.Key;
-
-                        if (!colorInfo.ContainsKey(t)) {
-                            colorInfo.Add(t, new Dictionary<Point, Color>());
-                        }
 
                         if (!paintAmount.ContainsKey(t)) {
                             paintAmount.Add(t, new Dictionary<Point, float>());
                         }
 
                         foreach (var p in t.GetPoints()) {
-                            if (!colorInfo[t].ContainsKey(p)) {
-                                colorInfo[t].Add(p, new Color(0, 0, 0));
-                            }
-
                             if (!paintAmount[t].ContainsKey(p)) {
                                 paintAmount[t].Add(p, 0.0f);
                             }
                         }
 
                         if (kv.Value == 3) {
-                            // sphereTriangles.Add(sphereTransformer.Transform(t));
-
                             var r = (float)MMath.GetDistance(t, position.originPoint);
                             if (r < maxR) {
-                                foreach (var p in t.GetPoints()) {
-                                    var direction = (t.o - position.originPoint).Normalized;
-
-                                    var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
-                                    if (cos > 0) {
-                                        var dot = MMath.Dot(position.paintDirection, direction);
-                                        dot = MMath.Round(dot * 1e6f) / 1e6f;
-                                        var x = MMath.Sqrt(1 - dot * dot) / dot;
-                                        var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * x, 0.0f, paintRadius / 3.0f);
-
-                                        var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
-                                        paintAmount[t][p] += k;
-                                        colorInfo[t][p] += new Color(k, 0, 0);
-                                        maxBrightness = Math.Max(colorInfo[t][p].r, maxBrightness);
-                                    }
+                                var direction = (t.o - position.originPoint).Normalized;
+                                var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
+                                if (cos > 0) {
+                                    trianglesForPosition.Add(t);
                                 }
-                                // trianglesForPosition.Add(t);
                             }
                         }
                     }
+
+                    var sphereTriangles = new List<SphereTriangle>();
+                    var triangleBySphereTriangle = new Dictionary<SphereTriangle, Triangle>();
+                    foreach (var t in trianglesForPosition) {
+                        var st = sphereTransformer.Transform(t);
+                        sphereTriangles.Add(st);
+                        triangleBySphereTriangle.Add(st, t);
+                    }
+
+                    var blockedSphereTriangles = new Dictionary<SphereTriangle, bool>();
+
                     // TODO fix overlapping
-                    // var rRange = sphereTriangles.OrderBy(RFunc).ToList();
-                    // var phiRange = sphereTriangles.OrderBy(PhiFunc).ToList();
-                    // var thetaRange = sphereTriangles.OrderBy(ThetaFunc).ToList();
+                    var rMinRange = sphereTriangles.OrderBy(RMinFunc).ToList();
+                    var rMaxRange = sphereTriangles.OrderBy(RMaxFunc).ToList();
+                    var phiMinRange = sphereTriangles.OrderBy(PhiMinFunc).ToList();
+                    var phiMaxRange = sphereTriangles.OrderBy(PhiMaxFunc).ToList();
+                    var thetaMinRange = sphereTriangles.OrderBy(ThetaMinFunc).ToList();
+                    var thetaMaxRange = sphereTriangles.OrderBy(ThetaMaxFunc).ToList();
 
-                    // MMath.Sin()
+                    foreach (var st1 in sphereTriangles) {
+                        foreach (var st2 in sphereTriangles) {
+                            if (st1 != st2 && !blockedSphereTriangles.ContainsKey(st1) && !blockedSphereTriangles.ContainsKey(st2) && MMath.HasOverlap(st1, st2)) {
+                                var t1 = triangleBySphereTriangle[st1];
+                                var t2 = triangleBySphereTriangle[st2];
+                                blockedSphereTriangles.Add(st1.minR < st2.minR ? st2 : st1, true);
+                            }
+                        }
+                    }
 
-                    // LowerIndex(rRange, t => t.p1.phi, Single.Epsilon);
+                    // foreach (var st in rMinRange) {
+                    //     if (!blockedSphereTriangles.ContainsKey(st)) {
+                    //         var ts1 = GetTrianglesInRadius(thetaMinRange, x => x.minTheta, st.minTheta, st.maxTheta);
+                    //         foreach (var t in ts1) {
+                    //             if (st != t && !blockedSphereTriangles.ContainsKey(t) && MMath.HasOverlap(st, t)) {
+                    //                 blockedSphereTriangles.Add(t, true);
+                    //             }
+                    //         }
+                    //
+                    //         var ts2 = GetTrianglesInRadius(thetaMaxRange, x => x.maxTheta, st.minTheta, st.maxTheta);
+                    //         foreach (var t in ts2) {
+                    //             if (st != t && !blockedSphereTriangles.ContainsKey(t) && MMath.HasOverlap(st, t)) {
+                    //                 blockedSphereTriangles.Add(t, true);
+                    //             }
+                    //         }
+                    //     }
+                    // }
 
-                    // customTriangles.AddRange(trianglesForPosition);
+                    foreach (var st in sphereTriangles) {
+                        if (!blockedSphereTriangles.ContainsKey(st)) {
+                            var t = triangleBySphereTriangle[st];
+
+                            var direction = (t.o - position.originPoint).Normalized;
+                            var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
+
+                            var dot = MMath.Dot(position.paintDirection, direction);
+                            dot = MMath.Round(dot * 1e4f) / 1e4f;
+                            var x = MMath.Sqrt(1 - dot * dot) / dot;
+                            var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * x, 0.0f, paintRadius / 3.0f);
+
+                            foreach (var p in t.GetPoints()) {
+                                var r = (float)MMath.GetDistance(p, position.originPoint);
+                                var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
+                                paintAmount[t][p] += k;
+                            }
+                        }
+                    }
                 }
-            }
-
-            var finalColorInfo = new Dictionary<Triangle, Dictionary<Point, Color>>();
-            foreach (var tColors in colorInfo) {
-                var pointColors = new Dictionary<Point, Color>();
-                foreach (var pColors in tColors.Value) {
-                    var c = pColors.Value;
-                    c.r /= maxBrightness;
-                    pointColors.Add(pColors.Key, c);
-                }
-                finalColorInfo.Add(tColors.Key, pointColors);
             }
 
             return new TexturePaintResult {
-                colorInfo = finalColorInfo,
                 paintAmount = paintAmount,
                 triangles = customTriangles,
             };

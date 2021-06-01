@@ -186,5 +186,9 @@ namespace Library.Generic
 
             throw new Exception("Not implemented");
         }
+
+        public static bool HasOverlap(SphereTriangle t1, SphereTriangle t2) {
+            return t1.HasOverlap(t2);
+        }
     }
 }

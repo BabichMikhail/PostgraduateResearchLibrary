@@ -61,6 +61,19 @@ namespace Library.Generic
 
         public float GetRadiusOfTheCircumscribedCircle() => (float)(l1 * l2 * l3) / 4 / GetSquare();
 
+        public Point GetCenterOfTheInscribedCircle() {
+            var dp1 = (float)(p2 - p3).Magnitude;
+            var dp2 = (float)(p1 - p3).Magnitude;
+            var dp3 = (float)(p1 - p2).Magnitude;
+            var p = dp1 + dp2 + dp3;
+
+            return new Point(
+                (p1.x * dp1 + p2.x * dp2 + p3.x * dp3) / p,
+                (p2.y * dp1 + p2.y * dp2 + p3.y * dp3) / p,
+                (p3.z * dp1 + p2.z * dp2 + p3.z * dp3) / p
+            );
+        }
+
         public float GetSquare() {
             var p = GetSemiPerimeter();
             return (float)Math.Sqrt(p * (p - l1) * (p - l2) * (p - l3));
