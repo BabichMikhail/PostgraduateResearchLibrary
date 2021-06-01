@@ -8,12 +8,14 @@ namespace Library.RobotPathBuilder {
         public readonly Point direction;
         public readonly float speedMultiplier;
         public readonly Position position;
+        public readonly float speedDecelerationMultiplier;
 
-        public RobotPosition(Point aPoint, Point aDirection, Position aPosition, float aSpeedMultiplier) {
+        public RobotPosition(Point aPoint, Point aDirection, Position aPosition, float aSpeedMultiplier, float aSpeedDecelerationMultiplier) {
             point = aPoint;
             direction = aDirection;
             position = aPosition;
             speedMultiplier = aSpeedMultiplier;
+            speedDecelerationMultiplier = aSpeedDecelerationMultiplier;
         }
     }
 
@@ -58,7 +60,7 @@ namespace Library.RobotPathBuilder {
         public float GetCurrentSpeed() {
             var result = 0.0f;
             if (currentPos < positions.Count - 1) {
-                result = speed * currentRobotPosition.speedMultiplier;
+                result = speed * currentRobotPosition.speedMultiplier * currentRobotPosition.speedDecelerationMultiplier;
             }
 
             return result;
@@ -70,8 +72,8 @@ namespace Library.RobotPathBuilder {
                 var p1 = positions[positionIndex];
                 var p2 = positions[positionIndex + 1];
 
-                var v1 = p1.speedMultiplier;
-                var v2 = p2.speedMultiplier;
+                var v1 = p1.speedMultiplier * p1.speedDecelerationMultiplier;
+                var v2 = p2.speedMultiplier * p2.speedDecelerationMultiplier;
                 var s = (float)MMath.GetDistance(p1.point, p2.point);
 
                 var t = 2 * s / (v1 + v2);
@@ -98,10 +100,10 @@ namespace Library.RobotPathBuilder {
             var distance = speed * time;
             while (distance > 0 && currentPos < positions.Count - 1) {
                 var length = (float)MMath.GetDistance(currentRobotPosition.point, positions[currentPos + 1].point);
-                if (distance * currentRobotPosition.speedMultiplier >= length) {
-                    lastMoveDistance += length / currentRobotPosition.speedMultiplier;
+                if (distance * currentRobotPosition.speedMultiplier * currentRobotPosition.speedDecelerationMultiplier >= length) {
+                    lastMoveDistance += length / (currentRobotPosition.speedMultiplier * currentRobotPosition.speedDecelerationMultiplier);
 
-                    distance -= length / currentRobotPosition.speedMultiplier;
+                    distance -= length / (currentRobotPosition.speedMultiplier * currentRobotPosition.speedDecelerationMultiplier);
                     ++currentPos;
                     currentRobotPosition = positions[currentPos];
                 }
@@ -109,9 +111,15 @@ namespace Library.RobotPathBuilder {
                     lastMoveDistance += distance * currentRobotPosition.speedMultiplier;
 
                     // TODO fix direction and surface point;
-                    var k = distance * currentRobotPosition.speedMultiplier / length;
+                    var k = distance * currentRobotPosition.speedMultiplier * currentRobotPosition.speedDecelerationMultiplier / length;
                     var newPoint = currentRobotPosition.point + k * (positions[currentPos + 1].point - currentRobotPosition.point);
-                    currentRobotPosition = new RobotPosition(newPoint, positions[currentPos].direction, positions[currentPos].position, positions[currentPos].speedMultiplier);
+                    currentRobotPosition = new RobotPosition(
+                        newPoint,
+                        positions[currentPos].direction,
+                        positions[currentPos].position,
+                        positions[currentPos].speedMultiplier,
+                        positions[currentPos].speedDecelerationMultiplier
+                    );
                     distance = 0;
                 }
             }
@@ -136,7 +144,7 @@ namespace Library.RobotPathBuilder {
             var pathItems = new List<RobotPathItem>();
             var i = 0;
             foreach (var pos in GetRobotPositions()) {
-                pathItems.Add(new RobotPathItem(pos.position, GetAcceleration(i), pos.speedMultiplier * speed));
+                pathItems.Add(new RobotPathItem(pos.position, GetAcceleration(i), pos.speedMultiplier * pos.speedDecelerationMultiplier * speed));
                 ++i;
             }
 
@@ -163,12 +171,13 @@ namespace Library.RobotPathBuilder {
             }
         }
 
-        public List<RobotPathProcessor> Build(List<Position> mergedPositions, float speed) {
+        public List<RobotPathProcessor> Build(List<Position> mergedPositions, float speed, float maxSpeed) {
             var result = new List<RobotPathProcessor>();
             foreach (var positions in SplitPositions(mergedPositions)) {
                 var robotPositions = new List<RobotPosition>();
                 for (var i = 0; i < positions.Count; ++i) {
                     var speedMultiplier = 1.0f; // TODO set to 0 and fix move robots;
+                    var speedDecelerationMultiplier = 1.0f;
                     if (i > 0 && i < positions.Count - 1) {
                         if (positions[i].originPoint == positions[i + 1].originPoint) {
                             throw new Exception("Illegal positions");
@@ -178,11 +187,22 @@ namespace Library.RobotPathBuilder {
                             MMath.GetDistance(positions[i + 1].originPoint, positions[i].originPoint) /
                             MMath.GetDistance(positions[i + 1].surfacePoint, positions[i].surfacePoint)
                         );
-                        if (speedMultiplier is float.NaN) {
+                        if (float.IsNaN(speedMultiplier)) {
                             speedMultiplier = 1.0f;
                         }
+
+                        if (!float.IsNaN(maxSpeed) && speedMultiplier * speed > maxSpeed) {
+                            speedDecelerationMultiplier = maxSpeed / (speedMultiplier * speed);
+                        }
                     }
-                    robotPositions.Add(new RobotPosition(positions[i].originPoint, positions[i].paintDirection, positions[i], speedMultiplier));
+
+                    robotPositions.Add(new RobotPosition(
+                        positions[i].originPoint,
+                        positions[i].paintDirection,
+                        positions[i],
+                        speedMultiplier,
+                        speedDecelerationMultiplier
+                    ));
                 }
 
                 var robotPath = new RobotPathProcessor(robotPositions);
