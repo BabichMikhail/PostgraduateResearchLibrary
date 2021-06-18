@@ -78,7 +78,7 @@ namespace Library.PathFinders
             plane2.d += (plane2D - 15 - paintLateralAllowance) * (float)plane2.GetDenominator();
 
             {
-                var maxDistance = MMath.GetDistance(plane2, plane1);//.GetSomePoint()));
+                var maxDistance = MMath.GetDistance(plane2, plane1);
                 foreach (var t in triangles) {
                     foreach (var p in t.GetPoints()) {
                         Debug.Assert(MMath.GetDistance(plane1, p) < maxDistance);
@@ -183,9 +183,9 @@ namespace Library.PathFinders
                     AddEdge(ref edgesByPoint, edge.p2, edge);
                 }
 
-                var subResults = GetBodyPositions(edges, fromPlane, toPlane, originalNormalByEdge);
-
-                foreach (var subResult in subResults) {
+                var positions = GetBodyPositions(edges, fromPlane, toPlane, originalNormalByEdge);
+                var bodyPositions = Straighten(positions);
+                foreach (var subResult in bodyPositions) {
                     {
                         var i0 = 0;
                         var i1 = i0 + 1;
@@ -499,6 +499,43 @@ namespace Library.PathFinders
             }
 
             return results;
+        }
+
+        List<List<Position>> Straighten(List<List<Position>> paths) {
+            var result = new List<List<Position>>();
+            foreach (var path in paths) {
+                var newPath = new List<Position>();
+                var j = 0;
+                while (j < path.Count - 1) {
+                    var pos1 = path[j];
+                    var pos2 = path[j + 1];
+
+                    var k = j + 2;
+                    while (k < path.Count) {
+                        var pos3 = path[k];
+
+                        var originDirection1 = (pos2.originPoint - pos1.originPoint).Normalized;
+                        var originDirection2 = (pos3.originPoint - pos1.originPoint).Normalized;
+                        var surfaceDirection1 = (pos2.surfacePoint - pos1.surfacePoint).Normalized;
+                        var surfaceDirection2 = (pos3.surfacePoint - pos1.surfacePoint).Normalized;
+
+                        if ((originDirection1 - originDirection2).Magnitude < 1e-4 && (surfaceDirection1 - surfaceDirection2).Magnitude < 1e-4) {
+                            ++k;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+
+                    newPath.Add(path[j]);
+                    j = k - 1;
+                }
+
+                newPath.Add(path[j]);
+                result.Add(newPath);
+            }
+
+            return result;
         }
 
         Dictionary<double, List<TrianglePath>> SplitObjectByDistance(Plane basePlane, List<Triangle> triangles) {
