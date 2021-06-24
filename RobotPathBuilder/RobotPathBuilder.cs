@@ -113,9 +113,10 @@ namespace Library.RobotPathBuilder {
                     // TODO fix direction and surface point;
                     var k = distance * currentRobotPosition.speedMultiplier * currentRobotPosition.speedDecelerationMultiplier / length;
                     var newPoint = currentRobotPosition.point + k * (positions[currentPos + 1].point - currentRobotPosition.point);
+                    var newDirection = currentRobotPosition.direction * (1 - k) + positions[currentPos + 1].direction * k;
                     currentRobotPosition = new RobotPosition(
                         newPoint,
-                        positions[currentPos].direction,
+                        newDirection,
                         positions[currentPos].position,
                         positions[currentPos].speedMultiplier,
                         positions[currentPos].speedDecelerationMultiplier
@@ -176,9 +177,9 @@ namespace Library.RobotPathBuilder {
             foreach (var positions in SplitPositions(mergedPositions)) {
                 var robotPositions = new List<RobotPosition>();
                 for (var i = 0; i < positions.Count; ++i) {
-                    var speedMultiplier = 1.0f; // TODO set to 0 and fix move robots;
+                    var speedMultiplier = 0.0f;
                     var speedDecelerationMultiplier = 1.0f;
-                    if (i > 0 && i < positions.Count - 1) {
+                    if (i >= 0 && i < positions.Count - 1) {
                         if (positions[i].originPoint == positions[i + 1].originPoint) {
                             throw new Exception("Illegal positions");
                         }
