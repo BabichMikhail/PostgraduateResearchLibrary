@@ -218,28 +218,52 @@ namespace Library.PathApproximation
             var newOriginPoints = new List<Point>();
             var newNormals = new List<Point>();
             {
-                for (var h = 0.0f; h <= maxT; h += step) {
+                var hValues = new List<float>();
+                for (var h = step; h <= maxT; h += step) {
+                    hValues.Add(h);
+                }
+                for (var h = maxT - step; h >= 0; h -= step) {
+                    hValues.Add(h);
+                }
+                hValues.Sort((a, b) => a < b ? -1 : 1);
+
+                var collapsedHValues = new List<List<float>>();
+                collapsedHValues.Add(new List<float>{0.0f});
+                var currentList = new List<float>();
+                foreach (var h in hValues) {
+                    if (currentList.Count > 0 && h - currentList.First() > step / 2.0f) {
+                        collapsedHValues.Add(currentList.ToList());
+                        currentList.Clear();
+                    }
+                    currentList.Add(h);
+                }
+                collapsedHValues.Add(currentList.ToList());
+                collapsedHValues.Add(new List<float>{maxT});
+
+                foreach (var hList in collapsedHValues) {
                     var count = 0;
                     var surfacePoint = new Point(0, 0, 0);
                     var originPoint = new Point(0, 0, 0);
                     var normal = new Point(0, 0, 0);
-                    for (var i = 0; i < xSurfaceEquations.Count; ++i) {
-                        if (xSurfaceEquations[i].IsValid(h)) {
-                            var sx = xSurfaceEquations[i].GetValue(h);
-                            var sy = ySurfaceEquations[i].GetValue(h);
-                            var sz = zSurfaceEquations[i].GetValue(h);
-                            var ox = xOriginEquations[i].GetValue(h);
-                            var oy = yOriginEquations[i].GetValue(h);
-                            var oz = zOriginEquations[i].GetValue(h);
-                            var nx = xNormalEquations[i].GetValue(h);
-                            var ny = yNormalEquations[i].GetValue(h);
-                            var nz = zNormalEquations[i].GetValue(h);
+                    foreach (var h in hList) {
+                        for (var i = 0; i < xSurfaceEquations.Count; ++i) {
+                            if (xSurfaceEquations[i].IsValid(h)) {
+                                var sx = xSurfaceEquations[i].GetValue(h);
+                                var sy = ySurfaceEquations[i].GetValue(h);
+                                var sz = zSurfaceEquations[i].GetValue(h);
+                                var ox = xOriginEquations[i].GetValue(h);
+                                var oy = yOriginEquations[i].GetValue(h);
+                                var oz = zOriginEquations[i].GetValue(h);
+                                var nx = xNormalEquations[i].GetValue(h);
+                                var ny = yNormalEquations[i].GetValue(h);
+                                var nz = zNormalEquations[i].GetValue(h);
 
-                            if (!(sx is double.NaN) && !(sy is double.NaN) && !(sz is double.NaN)) {
-                                ++count;
-                                surfacePoint += new Point((float)sx, (float)sy, (float)sz);
-                                originPoint += new Point((float)ox, (float)oy, (float)oz);
-                                normal += new Point((float)nx, (float)ny, (float)nz);
+                                if (!(sx is double.NaN) && !(sy is double.NaN) && !(sz is double.NaN)) {
+                                    ++count;
+                                    surfacePoint += new Point((float)sx, (float)sy, (float)sz);
+                                    originPoint += new Point((float)ox, (float)oy, (float)oz);
+                                    normal += new Point((float)nx, (float)ny, (float)nz);
+                                }
                             }
                         }
                     }
