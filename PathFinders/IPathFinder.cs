@@ -10,7 +10,7 @@ namespace PathFinders
     }
 
     public interface IPathFinder {
-        List<Position> GetPath(List<Triangle> triangles);
+        List<List<Position>> GetPaths(List<Triangle> triangles);
     }
 
     public static class PathFinderFactory {

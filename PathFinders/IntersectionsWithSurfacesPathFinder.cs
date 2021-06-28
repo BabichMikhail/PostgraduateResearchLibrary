@@ -37,7 +37,7 @@ namespace Library.PathFinders
             paintLineWidth = aPaintLineWidth;
         }
 
-        public List<Position> GetPath(List<Triangle> triangles) {
+        public List<List<Position>> GetPaths(List<Triangle> triangles) {
             var a = new Point(1, 0, 0);
             var b = new Point(1, 1, 0);
             var c = new Point(1, 1, 1);
@@ -161,7 +161,7 @@ namespace Library.PathFinders
             }
 
             var pathPartsByDistance = fixedPathPartsByDistance;
-            var result = new List<Position>();
+            var result = new List<List<Position>>();
             foreach (var pathPart in pathPartsByDistance) {
                 var fromPlane = plane1;
                 var toPlane = plane2;
@@ -186,6 +186,7 @@ namespace Library.PathFinders
                 var positions = GetBodyPositions(edges, fromPlane, toPlane, originalNormalByEdge);
                 var bodyPositions = Straighten(positions);
                 foreach (var subResult in bodyPositions) {
+                    var subPath = new List<Position>();
                     {
                         var i0 = 0;
                         var i1 = i0 + 1;
@@ -199,10 +200,10 @@ namespace Library.PathFinders
                         var surface0 = pos0.surfacePoint;
                         var surface1 = pos1.surfacePoint;
                         var dir = (surface0 - surface1).Normalized;
-                        result.Add(new Position(pos0.originPoint + dir * paintLongitudinalAllowance, pd, pos0.surfacePoint + dir * paintLongitudinalAllowance, Position.PositionType.Start));
+                        subPath.Add(new Position(pos0.originPoint + dir * paintLongitudinalAllowance, pd, pos0.surfacePoint + dir * paintLongitudinalAllowance, Position.PositionType.Start));
                     }
 
-                    result.AddRange(subResult);
+                    subPath.AddRange(subResult);
 
                     {
                         var i0 = subResult.Count - 1;
@@ -217,8 +218,10 @@ namespace Library.PathFinders
                         var surface0 = pos0.surfacePoint;
                         var surface1 = pos1.surfacePoint;
                         var dir = (surface0 - surface1).Normalized;
-                        result.Add(new Position(pos0.originPoint + dir * paintLongitudinalAllowance, pd, pos0.surfacePoint + dir * paintLongitudinalAllowance, Position.PositionType.Finish));
+                        subPath.Add(new Position(pos0.originPoint + dir * paintLongitudinalAllowance, pd, pos0.surfacePoint + dir * paintLongitudinalAllowance, Position.PositionType.Finish));
                     }
+
+                    result.Add(subPath);
                 }
             }
 

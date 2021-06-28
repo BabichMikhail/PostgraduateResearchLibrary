@@ -31,6 +31,14 @@ namespace Library.Generic
         public static Point operator *(float a, Point b) => b * a;
         public static Point operator -(Point a) => new Point(-a.x, -a.y, -a.z);
         public static bool operator ==(Point a, Point b) {
+            if (a is null && b is null) {
+                return true;
+            }
+
+            if (a is null || b is null) {
+                return false;
+            }
+
             var num1 = a.x - b.x;
             var num2 = a.y - b.y;
             var num3 = a.z - b.z;

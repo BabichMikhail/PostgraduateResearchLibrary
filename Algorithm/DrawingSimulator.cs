@@ -138,7 +138,7 @@ namespace Library.Algorithm
         }
 
         public TexturePaintResult ProcessPath(
-            List<RobotPath> paths, List<Triangle> triangles, float maxR, float paintRadius, float paintHeight, float maxTriangleSquare,
+            List<RobotPathProcessor> robotPathProcessors, List<Triangle> triangles, float maxR, float paintRadius, float paintHeight, float maxTriangleSquare,
             float paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
         ) {
             var maxSquare = maxTriangleSquare;
@@ -159,139 +159,132 @@ namespace Library.Algorithm
             var yTriangles = customTriangles.OrderBy(YFunc).ToList();
             var zTriangles = customTriangles.OrderBy(ZFunc).ToList();
 
-            float GetPaintTime(RobotPathItem current, RobotPathItem other) {
-                var vm = 3 * current.speed / 4 + other.speed / 4;
-                var d = (float)MMath.GetDistance(current.position.originPoint, other.position.originPoint) / 2;
+            var timePositions = new Dictionary<Position, float>();
+            foreach (var rpp in robotPathProcessors) {
+                foreach (var item in rpp.GetRobotPathItems()) {
+                    if (!timePositions.ContainsKey(item.a)) {
+                        timePositions.Add(item.a, 0.0f);
+                    }
 
-                return d / vm;
+                    if (!timePositions.ContainsKey(item.b)) {
+                        timePositions.Add(item.b, 0.0f);
+                    }
+
+                    var speed = item.GetSpeed(rpp.GetSurfaceSpeed(), rpp.GetMaxOriginSpeed());
+                    var distance = (float)MMath.GetDistance(item.a.surfacePoint, item.b.surfacePoint);
+                    var time = distance / speed;
+
+                    timePositions[item.a] += time / 2.0f;
+                    timePositions[item.b] += time / 2.0f;
+                }
             }
 
             var paintAmount = new Dictionary<Triangle, Dictionary<Point, float>>();
-            foreach (var path in paths) {
-                for (var i = 0; i < path.items.Count; ++i) {
-                    var time = 0.0f;
-                    if (i > 0) {
-                        time += GetPaintTime(path.items[i], path.items[i - 1]);
-                    }
+            foreach (var timePosition in timePositions) {
+                var position = timePosition.Key;
+                var time = timePosition.Value;
 
-                    if (i < path.items.Count - 1) {
-                        time += GetPaintTime(path.items[i], path.items[i + 1]);
-                    }
-
-                    var item = path.items[i];
-                    var position = item.position;
-                    var trianglesSet = new Dictionary<Triangle, int>();
-                    {
-                        var xRange = GetTrianglesInRadius(xTriangles, XFunc, position.originPoint.x - maxR, position.originPoint.x + maxR);
-                        var yRange = GetTrianglesInRadius(yTriangles, YFunc, position.originPoint.y - maxR, position.originPoint.y + maxR);
-                        var zRange = GetTrianglesInRadius(zTriangles, ZFunc, position.originPoint.z - maxR, position.originPoint.z + maxR);
-                        foreach (var selectedTriangles in new List<List<Triangle>> {xRange, yRange, zRange}) {
-                            foreach (var t in selectedTriangles) {
-                                if (trianglesSet.ContainsKey(t)) {
-                                    ++trianglesSet[t];
-                                }
-                                else {
-                                    trianglesSet.Add(t, 1);
-                                }
+                var trianglesSet = new Dictionary<Triangle, int>();
+                {
+                    var xRange = GetTrianglesInRadius(xTriangles, XFunc, position.originPoint.x - maxR, position.originPoint.x + maxR);
+                    var yRange = GetTrianglesInRadius(yTriangles, YFunc, position.originPoint.y - maxR, position.originPoint.y + maxR);
+                    var zRange = GetTrianglesInRadius(zTriangles, ZFunc, position.originPoint.z - maxR, position.originPoint.z + maxR);
+                    foreach (var selectedTriangles in new List<List<Triangle>> {xRange, yRange, zRange}) {
+                        foreach (var t in selectedTriangles) {
+                            if (trianglesSet.ContainsKey(t)) {
+                                ++trianglesSet[t];
+                            }
+                            else {
+                                trianglesSet.Add(t, 1);
                             }
                         }
                     }
+                }
 
-                    var plane = new Plane(position.paintDirection, position.originPoint);
-                    var n1 = (position.originPoint - plane.GetSomePoint()).Normalized;
-                    var n2 = -position.paintDirection.Normalized;
-                    var n3 = new Point(n1.y * n2.z - n1.z * n2.y, n1.z * n2.x - n1.x * n2.z, n1.x * n2.y - n1.y * n2.x).Normalized;
-                    var sphereTransformer = new SphereCoordinatesTransformer(position.originPoint);
+                var plane = new Plane(position.paintDirection, position.originPoint);
+                var n1 = (position.originPoint - plane.GetSomePoint()).Normalized;
+                var n2 = -position.paintDirection.Normalized;
+                var n3 = new Point(n1.y * n2.z - n1.z * n2.y, n1.z * n2.x - n1.x * n2.z, n1.x * n2.y - n1.y * n2.x).Normalized;
+                var sphereTransformer = new SphereCoordinatesTransformer(position.originPoint);
 
-                    var trianglesForPosition = new List<Triangle>();
-                    foreach (var kv in trianglesSet) {
-                        var t = kv.Key;
+                var trianglesForPosition = new List<Triangle>();
+                foreach (var kv in trianglesSet) {
+                    var t = kv.Key;
 
-                        if (!paintAmount.ContainsKey(t)) {
-                            paintAmount.Add(t, new Dictionary<Point, float>());
-                        }
+                    if (!paintAmount.ContainsKey(t)) {
+                        paintAmount.Add(t, new Dictionary<Point, float>());
+                    }
 
-                        foreach (var p in t.GetPoints()) {
-                            if (!paintAmount[t].ContainsKey(p)) {
-                                paintAmount[t].Add(p, 0.0f);
-                            }
-                        }
-
-                        if (kv.Value == 3) {
-                            var r = (float)MMath.GetDistance(t, position.originPoint);
-                            if (r < maxR) {
-                                var direction = (t.o - position.originPoint).Normalized;
-                                var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
-                                if (cos > 0) {
-                                    trianglesForPosition.Add(t);
-                                }
-                            }
+                    foreach (var p in t.GetPoints()) {
+                        if (!paintAmount[t].ContainsKey(p)) {
+                            paintAmount[t].Add(p, 0.0f);
                         }
                     }
 
-                    var sphereTriangles = new List<SphereTriangle>();
-                    var triangleBySphereTriangle = new Dictionary<SphereTriangle, Triangle>();
-                    foreach (var t in trianglesForPosition) {
-                        var st = sphereTransformer.Transform(t);
-                        sphereTriangles.Add(st);
-                        triangleBySphereTriangle.Add(st, t);
-                    }
-
-                    var blockedSphereTriangles = new Dictionary<SphereTriangle, bool>();
-
-                    // TODO fix overlapping
-                    var rMinRange = sphereTriangles.OrderBy(RMinFunc).ToList();
-                    var rMaxRange = sphereTriangles.OrderBy(RMaxFunc).ToList();
-                    var phiMinRange = sphereTriangles.OrderBy(PhiMinFunc).ToList();
-                    var phiMaxRange = sphereTriangles.OrderBy(PhiMaxFunc).ToList();
-                    var thetaMinRange = sphereTriangles.OrderBy(ThetaMinFunc).ToList();
-                    var thetaMaxRange = sphereTriangles.OrderBy(ThetaMaxFunc).ToList();
-
-                    foreach (var st1 in sphereTriangles) {
-                        foreach (var st2 in sphereTriangles) {
-                            if (st1 != st2 && !blockedSphereTriangles.ContainsKey(st1) && !blockedSphereTriangles.ContainsKey(st2) && MMath.HasOverlap(st1, st2)) {
-                                var t1 = triangleBySphereTriangle[st1];
-                                var t2 = triangleBySphereTriangle[st2];
-                                blockedSphereTriangles.Add(st1.minR < st2.minR ? st2 : st1, true);
-                            }
-                        }
-                    }
-
-                    // foreach (var st in rMinRange) {
-                    //     if (!blockedSphereTriangles.ContainsKey(st)) {
-                    //         var ts1 = GetTrianglesInRadius(thetaMinRange, x => x.minTheta, st.minTheta, st.maxTheta);
-                    //         foreach (var t in ts1) {
-                    //             if (st != t && !blockedSphereTriangles.ContainsKey(t) && MMath.HasOverlap(st, t)) {
-                    //                 blockedSphereTriangles.Add(t, true);
-                    //             }
-                    //         }
-                    //
-                    //         var ts2 = GetTrianglesInRadius(thetaMaxRange, x => x.maxTheta, st.minTheta, st.maxTheta);
-                    //         foreach (var t in ts2) {
-                    //             if (st != t && !blockedSphereTriangles.ContainsKey(t) && MMath.HasOverlap(st, t)) {
-                    //                 blockedSphereTriangles.Add(t, true);
-                    //             }
-                    //         }
-                    //     }
-                    // }
-
-                    foreach (var st in sphereTriangles) {
-                        if (!blockedSphereTriangles.ContainsKey(st)) {
-                            var t = triangleBySphereTriangle[st];
-
+                    if (kv.Value == 3) {
+                        var r = (float)MMath.GetDistance(t, position.originPoint);
+                        if (r < maxR) {
                             var direction = (t.o - position.originPoint).Normalized;
                             var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
-
-                            var dot = MMath.Dot(position.paintDirection, direction);
-                            dot = MMath.Round(dot * 1e4f) / 1e4f;
-                            var x = MMath.Sqrt(1 - dot * dot) / dot;
-                            var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * x, 0.0f, paintRadius / 3.0f);
-
-                            foreach (var p in t.GetPoints()) {
-                                var r = (float)MMath.GetDistance(p, position.originPoint);
-                                var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
-                                paintAmount[t][p] += k;
+                            if (cos > 0) {
+                                trianglesForPosition.Add(t);
                             }
+                        }
+                    }
+                }
+
+                var sphereTriangles = new List<SphereTriangle>();
+                var triangleBySphereTriangle = new Dictionary<SphereTriangle, Triangle>();
+                foreach (var t in trianglesForPosition) {
+                    var st = sphereTransformer.Transform(t);
+                    sphereTriangles.Add(st);
+                    triangleBySphereTriangle.Add(st, t);
+                }
+
+                var blockedSphereTriangles = new Dictionary<SphereTriangle, bool>();
+
+                // TODO fix overlapping
+                var rMinRange = sphereTriangles.OrderBy(RMinFunc).ToList();
+                var rMaxRange = sphereTriangles.OrderBy(RMaxFunc).ToList();
+                var phiMinRange = sphereTriangles.OrderBy(PhiMinFunc).ToList();
+                var phiMaxRange = sphereTriangles.OrderBy(PhiMaxFunc).ToList();
+                var thetaMinRange = sphereTriangles.OrderBy(ThetaMinFunc).ToList();
+                var thetaMaxRange = sphereTriangles.OrderBy(ThetaMaxFunc).ToList();
+
+                foreach (var st in rMinRange) {
+                    if (!blockedSphereTriangles.ContainsKey(st)) {
+                        var ts1 = GetTrianglesInRadius(thetaMinRange, x => x.minTheta, st.minTheta, st.maxTheta);
+                        foreach (var t in ts1) {
+                            if (st != t && !blockedSphereTriangles.ContainsKey(t) && MMath.HasOverlap(st, t)) {
+                                blockedSphereTriangles.Add(t, true);
+                            }
+                        }
+
+                        var ts2 = GetTrianglesInRadius(thetaMaxRange, x => x.maxTheta, st.minTheta, st.maxTheta);
+                        foreach (var t in ts2) {
+                            if (st != t && !blockedSphereTriangles.ContainsKey(t) && MMath.HasOverlap(st, t)) {
+                                blockedSphereTriangles.Add(t, true);
+                            }
+                        }
+                    }
+                }
+
+                foreach (var st in sphereTriangles) {
+                    if (!blockedSphereTriangles.ContainsKey(st)) {
+                        var t = triangleBySphereTriangle[st];
+
+                        var direction = (t.o - position.originPoint).Normalized;
+                        var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
+
+                        var dot = MMath.Dot(position.paintDirection, direction);
+                        dot = MMath.Round(dot * 1e4f) / 1e4f;
+                        var x = MMath.Sqrt(1 - dot * dot) / dot;
+                        var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * x, 0.0f, paintRadius / 3.0f);
+
+                        foreach (var p in t.GetPoints()) {
+                            var r = (float)MMath.GetDistance(p, position.originPoint);
+                            var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
+                            paintAmount[t][p] += k;
                         }
                     }
                 }

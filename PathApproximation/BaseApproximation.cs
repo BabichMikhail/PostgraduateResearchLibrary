@@ -219,10 +219,10 @@ namespace Library.PathApproximation
             var newNormals = new List<Point>();
             {
                 var hValues = new List<float>();
-                for (var h = step; h <= maxT; h += step) {
+                for (var h = step; h < maxT; h += step) {
                     hValues.Add(h);
                 }
-                for (var h = maxT - step; h >= 0; h -= step) {
+                for (var h = maxT - step; h > 0; h -= step) {
                     hValues.Add(h);
                 }
                 hValues.Sort((a, b) => a < b ? -1 : 1);
