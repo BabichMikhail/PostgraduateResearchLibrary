@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Library.Generic;
 
 namespace Library.RobotPathBuilder {
@@ -8,9 +7,12 @@ namespace Library.RobotPathBuilder {
         public readonly Position a;
         public readonly Position b;
 
-        public RobotPathItem(Position aFrom, Position aTo) {
+        private readonly float extraDecelerationMultiplier;
+
+        public RobotPathItem(Position aFrom, Position aTo, float aExtraDecelerationMultiplier = 1.0f) {
             a = aFrom;
             b = aTo;
+            extraDecelerationMultiplier = aExtraDecelerationMultiplier;
         }
 
         public float GetSpeedMultiplier() {
@@ -21,11 +23,11 @@ namespace Library.RobotPathBuilder {
 
         public float GetSpeedDecelerationMultiplier(float surfaceSpeed, float maxOriginSpeed) {
             if (float.IsNaN(maxOriginSpeed)) {
-                return 1.0f;
+                return extraDecelerationMultiplier;
             }
 
             var speed = GetSpeedMultiplier() * surfaceSpeed;
-            return Math.Min(speed, maxOriginSpeed) / speed;
+            return extraDecelerationMultiplier * Math.Min(speed, maxOriginSpeed) / speed;
         }
 
         public float GetSpeed(float surfaceSpeed, float maxOriginSpeed) {
@@ -44,14 +46,6 @@ namespace Library.RobotPathBuilder {
         public RobotPathProcessor(List<RobotPathItem> aPathItems) {
             pathItems = aPathItems;
             currentPathItem = pathItems[currentPathItemIdx];
-        }
-
-        public List<Position> GetRawPath() {
-            var result = new List<Position>();
-            pathItems.ForEach(x => result.Add(x.a));
-            result.Add(pathItems.Last().b);
-
-            return result;
         }
 
         public void SetSurfaceSpeed(float aSpeed) {
