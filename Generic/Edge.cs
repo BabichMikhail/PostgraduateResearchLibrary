@@ -15,6 +15,8 @@ namespace Library.Generic
 
         public List<Point> GetPoints() => new List<Point> {p1, p2};
 
+        public Segment GetSegment() => new Segment(p1, p2);
+
         public bool HasPoint(Point p) => p1 == p || p2 == p;
 
         public float Dx() => p2.x - p1.x;

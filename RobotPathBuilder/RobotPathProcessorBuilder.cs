@@ -6,13 +6,12 @@ namespace Library.RobotPathBuilder {
     public class RobotPathItem {
         public readonly Position a;
         public readonly Position b;
+        public readonly float extraAccelerationMultiplier;
 
-        private readonly float extraDecelerationMultiplier;
-
-        public RobotPathItem(Position aFrom, Position aTo, float aExtraDecelerationMultiplier = 1.0f) {
+        public RobotPathItem(Position aFrom, Position aTo, float aExtraAccelerationMultiplier = 1.0f) {
             a = aFrom;
             b = aTo;
-            extraDecelerationMultiplier = aExtraDecelerationMultiplier;
+            extraAccelerationMultiplier = aExtraAccelerationMultiplier;
         }
 
         public float GetSpeedMultiplier() {
@@ -23,11 +22,11 @@ namespace Library.RobotPathBuilder {
 
         public float GetSpeedDecelerationMultiplier(float surfaceSpeed, float maxOriginSpeed) {
             if (float.IsNaN(maxOriginSpeed)) {
-                return extraDecelerationMultiplier;
+                return extraAccelerationMultiplier;
             }
 
             var speed = GetSpeedMultiplier() * surfaceSpeed;
-            return extraDecelerationMultiplier * Math.Min(speed, maxOriginSpeed) / speed;
+            return extraAccelerationMultiplier * Math.Min(speed, maxOriginSpeed) / speed;
         }
 
         public float GetSpeed(float surfaceSpeed, float maxOriginSpeed) {
@@ -67,7 +66,7 @@ namespace Library.RobotPathBuilder {
         public float GetCurrentOriginSpeed() {
             var result = 0.0f;
             if (currentPathItemIdx < pathItems.Count) {
-                result = speed * pathItems[currentPathItemIdx].GetSpeedMultiplier() * pathItems[currentPathItemIdx].GetSpeedDecelerationMultiplier(speed, maxSpeed);
+                result = pathItems[currentPathItemIdx].GetSpeed(speed, maxSpeed);
             }
 
             return result;

@@ -231,6 +231,9 @@ namespace Library.PathApproximation
                 collapsedHValues.Add(new List<float>{0.0f});
                 var currentList = new List<float>();
                 foreach (var h in hValues) {
+                    if (h < step / 2.0f || maxT - h < step / 2.0f) {
+                        continue;
+                    }
                     if (currentList.Count > 0 && h - currentList.First() > step / 2.0f) {
                         collapsedHValues.Add(currentList.ToList());
                         currentList.Clear();

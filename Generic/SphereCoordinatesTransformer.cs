@@ -110,20 +110,20 @@ namespace Library.Generic
                 var o1 = originTriangle.GetCenterOfTheInscribedCircle();
                 var o2 = other.originTriangle.GetCenterOfTheInscribedCircle();
 
-                if (MMath.Intersect(plane1, new Line(originPoint, o1), true) is null) {
+                if (MMath.Intersect(plane1, new Segment(originPoint, o1)) is null) {
                     UnityEngine.Debug.Assert(false);
                 }
-                if (MMath.Intersect(plane2, new Line(originPoint, o2), true) is null) {
+                if (MMath.Intersect(plane2, new Segment(originPoint, o2)) is null) {
                     UnityEngine.Debug.Assert(false);
                 }
 
                 while (true) {
                     var target = (o1 + o2) / 2.0f;
                     var direction = target - originPoint;
-                    var l0 = new Line(originPoint, originPoint + direction.Normalized * (float)direction.Magnitude * 6f);
+                    var l0 = new Segment(originPoint, originPoint + direction.Normalized * (float)direction.Magnitude * 6f);
 
-                    var _p1 = MMath.Intersect(plane1, l0, true);
-                    var _p2 = MMath.Intersect(plane2, l0, true);
+                    var _p1 = MMath.Intersect(plane1, l0);
+                    var _p2 = MMath.Intersect(plane2, l0);
 
                     var ok1 = !(_p1 is null) && IsPointInTriangle(originTriangle, _p1);
                     var ok2 = !(_p2 is null) && IsPointInTriangle(other.originTriangle, _p2);
@@ -147,25 +147,25 @@ namespace Library.Generic
                 }
 
                 {
-                    // var l1 = new Line(originPoint, other.originTriangle.p1);
+                    // var l1 = new Segment(originPoint, other.originTriangle.p1);
                     // var lp1 = MMath.Intersect(p, l1, true);
                     // if (!(lp1 is null) && IsPointInTriangle(originTriangle, lp1)) {
                     //     return true;
                     // }
                     //
-                    // var l2 = new Line(originPoint, other.originTriangle.p2);
+                    // var l2 = new Segment(originPoint, other.originTriangle.p2);
                     // var lp2 = MMath.Intersect(p, l2, true);
                     // if (!(lp2 is null) && IsPointInTriangle(originTriangle, lp2)) {
                     //     return true;
                     // }
                     //
-                    // var l3 = new Line(originPoint, other.originTriangle.p3);
+                    // var l3 = new Segment(originPoint, other.originTriangle.p3);
                     // var lp3 = MMath.Intersect(p, l3, true);
                     // if (!(lp3 is null) && IsPointInTriangle(originTriangle, lp3)) {
                     //     return true;
                     // }
                     //
-                    // var lo = new Line(originPoint, other.originTriangle.o);
+                    // var lo = new Segment(originPoint, other.originTriangle.o);
                     // var lpo = MMath.Intersect(p, lo, true);
                     // if (!(lpo is null) && IsPointInTriangle(originTriangle, lpo)) {
                     //     return true;

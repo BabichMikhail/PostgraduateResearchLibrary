@@ -25,8 +25,10 @@ namespace Library.Algorithm
     }
 
     public class TexturePaintResult {
-        public Dictionary<Triangle, Dictionary<Point, float>> paintAmount;
+        public Dictionary<Triangle, Dictionary<Point, double>> paintAmount;
         public List<Triangle> triangles;
+        public Dictionary<RobotPathItem, Dictionary<Triangle, Dictionary<Point, double>>> detailedPaintAmount;
+        public double sumAmount;
     }
 
     public class DrawingSimulator {
@@ -160,6 +162,8 @@ namespace Library.Algorithm
             var zTriangles = customTriangles.OrderBy(ZFunc).ToList();
 
             var timePositions = new Dictionary<Position, float>();
+            var detailedTimePositions = new Dictionary<Position, Dictionary<RobotPathItem, float>>();
+            var itemPositionCount = new Dictionary<Position, int>();
             foreach (var rpp in robotPathProcessors) {
                 foreach (var item in rpp.GetRobotPathItems()) {
                     if (!timePositions.ContainsKey(item.a)) {
@@ -170,19 +174,53 @@ namespace Library.Algorithm
                         timePositions.Add(item.b, 0.0f);
                     }
 
-                    var speed = item.GetSpeed(rpp.GetSurfaceSpeed(), rpp.GetMaxOriginSpeed());
-                    var distance = (float)MMath.GetDistance(item.a.surfacePoint, item.b.surfacePoint);
-                    var time = distance / speed;
+                    if (!detailedTimePositions.ContainsKey(item.a)) {
+                        detailedTimePositions.Add(item.a, new Dictionary<RobotPathItem, float>());
+                    }
 
-                    timePositions[item.a] += time / 2.0f;
-                    timePositions[item.b] += time / 2.0f;
+                    if (!detailedTimePositions.ContainsKey(item.b)) {
+                        detailedTimePositions.Add(item.b, new Dictionary<RobotPathItem, float>());
+                    }
+
+                    if (!detailedTimePositions[item.a].ContainsKey(item)) {
+                        detailedTimePositions[item.a].Add(item, 0.0f);
+                    }
+
+                    if (!detailedTimePositions[item.b].ContainsKey(item)) {
+                        detailedTimePositions[item.b].Add(item, 0.0f);
+                    }
+
+                    if (!itemPositionCount.ContainsKey(item.a)) {
+                        itemPositionCount.Add(item.a, 0);
+                    }
+
+                    if (!itemPositionCount.ContainsKey(item.b)) {
+                        itemPositionCount.Add(item.b, 0);
+                    }
+
+                    var speed = item.GetSpeed(rpp.GetSurfaceSpeed(), rpp.GetMaxOriginSpeed());
+                    var distance = (float)MMath.GetDistance(item.a.originPoint, item.b.originPoint);
+                    var time = distance / speed / 2.0f;
+
+                    timePositions[item.a] += time;
+                    timePositions[item.b] += time;
+                    detailedTimePositions[item.a][item] += time;
+                    detailedTimePositions[item.b][item] += time;
+                    ++itemPositionCount[item.a];
+                    ++itemPositionCount[item.b];
                 }
             }
 
-            var paintAmount = new Dictionary<Triangle, Dictionary<Point, float>>();
+            var sum = 0.0;
+            var paintAmount = new Dictionary<Triangle, Dictionary<Point, double>>();
+            var detailedPaintAmount = new Dictionary<Position, Dictionary<Triangle, Dictionary<Point, double>>>();
             foreach (var timePosition in timePositions) {
                 var position = timePosition.Key;
                 var time = timePosition.Value;
+
+                if (!detailedPaintAmount.ContainsKey(position)) {
+                    detailedPaintAmount.Add(position, new Dictionary<Triangle, Dictionary<Point, double>>());
+                }
 
                 var trianglesSet = new Dictionary<Triangle, int>();
                 {
@@ -212,12 +250,22 @@ namespace Library.Algorithm
                     var t = kv.Key;
 
                     if (!paintAmount.ContainsKey(t)) {
-                        paintAmount.Add(t, new Dictionary<Point, float>());
+                        paintAmount.Add(t, new Dictionary<Point, double>());
                     }
 
                     foreach (var p in t.GetPoints()) {
                         if (!paintAmount[t].ContainsKey(p)) {
-                            paintAmount[t].Add(p, 0.0f);
+                            paintAmount[t].Add(p, 0.0);
+                        }
+                    }
+
+                    if (!detailedPaintAmount[position].ContainsKey(t)) {
+                        detailedPaintAmount[position].Add(t, new Dictionary<Point, double>());
+                    }
+
+                    foreach (var p in t.GetPoints()) {
+                        if (!detailedPaintAmount[position][t].ContainsKey(p)) {
+                            detailedPaintAmount[position][t].Add(p, 0.0);
                         }
                     }
 
@@ -285,6 +333,39 @@ namespace Library.Algorithm
                             var r = (float)MMath.GetDistance(p, position.originPoint);
                             var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
                             paintAmount[t][p] += k;
+                            detailedPaintAmount[position][t][p] += k;
+                            sum += k;
+                        }
+                    }
+                }
+            }
+
+            var detailedPaintAmountForItems = new Dictionary<RobotPathItem, Dictionary<Triangle, Dictionary<Point, double>>>();
+            foreach (var detailedPaintAmountByPosition in detailedPaintAmount) {
+                var position = detailedPaintAmountByPosition.Key;
+                var pathItemTimes = detailedTimePositions[position];
+                UnityEngine.Debug.Assert(pathItemTimes.Count == 2);
+                foreach (var detailedPaintAmountByTriangle in detailedPaintAmountByPosition.Value) {
+                    var triangle = detailedPaintAmountByTriangle.Key;
+                    foreach (var pointPaintAmount in detailedPaintAmountByTriangle.Value) {
+                        var point = pointPaintAmount.Key;
+                        foreach (var pathItemTime in pathItemTimes) {
+                            var item = pathItemTime.Key;
+                            UnityEngine.Debug.Assert(item.a == position || item.b == position);
+
+                            if (!detailedPaintAmountForItems.ContainsKey(item)) {
+                                detailedPaintAmountForItems.Add(item, new Dictionary<Triangle, Dictionary<Point, double>>());
+                            }
+
+                            if (!detailedPaintAmountForItems[item].ContainsKey(triangle)) {
+                                detailedPaintAmountForItems[item].Add(triangle, new Dictionary<Point, double>());
+                            }
+
+                            if (!detailedPaintAmountForItems[item][triangle].ContainsKey(point)) {
+                                detailedPaintAmountForItems[item][triangle].Add(point, 0.0);
+                            }
+
+                            detailedPaintAmountForItems[item][triangle][point] += pointPaintAmount.Value / 2.0;
                         }
                     }
                 }
@@ -293,6 +374,8 @@ namespace Library.Algorithm
             return new TexturePaintResult {
                 paintAmount = paintAmount,
                 triangles = customTriangles,
+                detailedPaintAmount = detailedPaintAmountForItems,
+                sumAmount = sum,
             };
         }
     }

@@ -2,19 +2,19 @@ using System.Collections.Generic;
 
 namespace Library.Generic
 {
-    public class Line {
+    public class Segment {
         public readonly Point p1;
         public readonly Point p2;
 
         // (x - x_0) / p0_x = (y - y_0) / p0_y = (z - z_0) / p0_z;
-        public readonly float p0X;
-        public readonly float p0Y;
-        public readonly float p0Z;
-        public readonly float x0;
-        public readonly float y0;
-        public readonly float z0;
+        private readonly float p0X;
+        private readonly float p0Y;
+        private readonly float p0Z;
+        private readonly float x0;
+        private readonly float y0;
+        private readonly float z0;
 
-        public Line(Point aP1, Point aP2) {
+        public Segment(Point aP1, Point aP2) {
             p1 = aP1;
             p2 = aP2;
 
