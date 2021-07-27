@@ -27,7 +27,8 @@ namespace Library.Algorithm
     public class TexturePaintResult {
         public Dictionary<Triangle, Dictionary<Point, double>> paintAmount;
         public List<Triangle> triangles;
-        public Dictionary<RobotPathItem, Dictionary<Triangle, Dictionary<Point, double>>> detailedPaintAmount;
+        public Dictionary<RobotPathItem, Dictionary<Triangle, Dictionary<Point, double>>> detailedPaintAmountForItems;
+        public Dictionary<Position, Dictionary<Triangle, Dictionary<Point, double>>> detailedPaintAmountForPositions;
         public double sumAmount;
     }
 
@@ -344,7 +345,7 @@ namespace Library.Algorithm
             foreach (var detailedPaintAmountByPosition in detailedPaintAmount) {
                 var position = detailedPaintAmountByPosition.Key;
                 var pathItemTimes = detailedTimePositions[position];
-                UnityEngine.Debug.Assert(pathItemTimes.Count == 2);
+                UnityEngine.Debug.Assert(pathItemTimes.Count == 1 || pathItemTimes.Count == 2);
                 foreach (var detailedPaintAmountByTriangle in detailedPaintAmountByPosition.Value) {
                     var triangle = detailedPaintAmountByTriangle.Key;
                     foreach (var pointPaintAmount in detailedPaintAmountByTriangle.Value) {
@@ -353,18 +354,9 @@ namespace Library.Algorithm
                             var item = pathItemTime.Key;
                             UnityEngine.Debug.Assert(item.a == position || item.b == position);
 
-                            if (!detailedPaintAmountForItems.ContainsKey(item)) {
-                                detailedPaintAmountForItems.Add(item, new Dictionary<Triangle, Dictionary<Point, double>>());
-                            }
-
-                            if (!detailedPaintAmountForItems[item].ContainsKey(triangle)) {
-                                detailedPaintAmountForItems[item].Add(triangle, new Dictionary<Point, double>());
-                            }
-
-                            if (!detailedPaintAmountForItems[item][triangle].ContainsKey(point)) {
-                                detailedPaintAmountForItems[item][triangle].Add(point, 0.0);
-                            }
-
+                            DictUtils.FillValueIfNotExists(detailedPaintAmountForItems, item, new Dictionary<Triangle, Dictionary<Point, double>>());
+                            DictUtils.FillValueIfNotExists(detailedPaintAmountForItems[item], triangle, new Dictionary<Point, double>());
+                            DictUtils.FillValueIfNotExists(detailedPaintAmountForItems[item][triangle], point, 0.0);
                             detailedPaintAmountForItems[item][triangle][point] += pointPaintAmount.Value / 2.0;
                         }
                     }
@@ -374,7 +366,8 @@ namespace Library.Algorithm
             return new TexturePaintResult {
                 paintAmount = paintAmount,
                 triangles = customTriangles,
-                detailedPaintAmount = detailedPaintAmountForItems,
+                detailedPaintAmountForItems = detailedPaintAmountForItems,
+                detailedPaintAmountForPositions = detailedPaintAmount,
                 sumAmount = sum,
             };
         }
