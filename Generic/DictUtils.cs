@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 
 namespace Library.Generic
 {
-    public static class DictUtils
-    {
+    public static class DictUtils {
         public static void FillValueIfNotExists<TK, TV>(Dictionary<TK, TV> dict, TK k, TV defaultValue) {
             if (!dict.ContainsKey(k)) {
                 dict.Add(k, defaultValue);
