@@ -199,9 +199,12 @@ namespace Library.Algorithm
                         itemPositionCount.Add(item.b, 0);
                     }
 
-                    var speed = item.GetSpeed(rpp.GetSurfaceSpeed(), rpp.GetMaxOriginSpeed());
+                    var speed = item.GetSpeed(rpp.GetSurfaceSpeed());
                     var distance = (float)MMath.GetDistance(item.a.originPoint, item.b.originPoint);
                     var time = distance / speed / 2.0f;
+                    if (float.IsInfinity(time)) {
+                        throw new Exception("Illegal time");
+                    }
 
                     timePositions[item.a] += time;
                     timePositions[item.b] += time;
@@ -333,6 +336,10 @@ namespace Library.Algorithm
                         foreach (var p in t.GetPoints()) {
                             var r = (float)MMath.GetDistance(p, position.originPoint);
                             var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
+                            if (float.IsInfinity(k)) {
+                                throw new Exception("Illegal paint amount");
+                            }
+
                             paintAmount[t][p] += k;
                             detailedPaintAmount[position][t][p] += k;
                             sum += k;

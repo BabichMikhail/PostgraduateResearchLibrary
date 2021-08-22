@@ -20,17 +20,16 @@ namespace Library.RobotPathBuilder {
             return (float)(originDistance / surfaceDistance);
         }
 
-        public float GetSpeedDecelerationMultiplier(float surfaceSpeed, float maxOriginSpeed) {
-            if (float.IsNaN(maxOriginSpeed)) {
-                return extraAccelerationMultiplier;
-            }
-
-            var speed = GetSpeedMultiplier() * surfaceSpeed;
-            return extraAccelerationMultiplier * Math.Min(speed, maxOriginSpeed) / speed;
+        public float GetSpeedAccelerationMultiplier(float surfaceSpeed) {
+            return extraAccelerationMultiplier;
         }
 
-        public float GetSpeed(float surfaceSpeed, float maxOriginSpeed) {
-            return surfaceSpeed * GetSpeedMultiplier() * GetSpeedDecelerationMultiplier(surfaceSpeed, maxOriginSpeed);
+        public float GetSpeed(float surfaceSpeed) {
+            return surfaceSpeed * GetSpeedMultiplier() * GetSpeedAccelerationMultiplier(surfaceSpeed);
+        }
+
+        public float GetTime(float surfaceSpeed) {
+            return (float)MMath.GetDistance(a.originPoint, b.originPoint) / GetSpeed(surfaceSpeed);
         }
     }
 
@@ -66,7 +65,7 @@ namespace Library.RobotPathBuilder {
         public float GetCurrentOriginSpeed() {
             var result = 0.0f;
             if (currentPathItemIdx < pathItems.Count) {
-                result = pathItems[currentPathItemIdx].GetSpeed(speed, maxSpeed);
+                result = pathItems[currentPathItemIdx].GetSpeed(speed);
             }
 
             return result;
@@ -113,8 +112,8 @@ namespace Library.RobotPathBuilder {
                 var length = (float)MMath.GetDistance(currentPathItem.a.originPoint, currentPathItem.b.originPoint);
 
                 var speedMultiplier = currentPathItem.GetSpeedMultiplier();
-                var speedDecelerationMultiplier = currentPathItem.GetSpeedDecelerationMultiplier(speed, float.NaN);
-                var speedCoefficient = speedMultiplier * speedDecelerationMultiplier;
+                var speedAccelerationMultiplier = currentPathItem.GetSpeedAccelerationMultiplier(speed);
+                var speedCoefficient = speedMultiplier * speedAccelerationMultiplier;
 
                 if (distance * speedCoefficient >= length) {
                     var moveDistance = length / speedCoefficient;
