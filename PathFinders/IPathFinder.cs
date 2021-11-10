@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using Library.Generic;
 using Library.PathFinders;
 
-namespace PathFinders
-{
+namespace PathFinders  {
     public enum PathFinderType {
         IntersectionsWithSurfacesPathFinder,
     }
@@ -16,12 +15,12 @@ namespace PathFinders
     public static class PathFinderFactory {
         public static IPathFinder Create(
             PathFinderType type, float paintRadius, float paintHeight, float paintLateralAllowance, float paintLongitudinalAllowance,
-            float paintLineWidth
+            float paintLineWidth, bool addExtraParallelPaths
         ) {
             IPathFinder result = null;
             switch (type) {
                 case PathFinderType.IntersectionsWithSurfacesPathFinder:
-                    result = new IntersectionsWithSurfacesPathFinder(paintRadius, paintHeight, paintLateralAllowance, paintLongitudinalAllowance, paintLineWidth);
+                    result = new IntersectionsWithSurfacesPathFinder(paintRadius, paintHeight, paintLateralAllowance, paintLongitudinalAllowance, paintLineWidth, addExtraParallelPaths);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);

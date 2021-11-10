@@ -20,16 +20,26 @@ namespace Library.RobotPathBuilder {
             return (float)(originDistance / surfaceDistance);
         }
 
-        public float GetSpeedAccelerationMultiplier(float surfaceSpeed) {
+        public float GetSpeedAccelerationMultiplier() {
             return extraAccelerationMultiplier;
         }
 
         public float GetSpeed(float surfaceSpeed) {
-            return surfaceSpeed * GetSpeedMultiplier() * GetSpeedAccelerationMultiplier(surfaceSpeed);
+            return surfaceSpeed * GetSpeedMultiplier() * GetSpeedAccelerationMultiplier();
         }
 
         public float GetTime(float surfaceSpeed) {
-            return (float)MMath.GetDistance(a.originPoint, b.originPoint) / GetSpeed(surfaceSpeed);
+            return (float)GetDistance() / GetSpeed(surfaceSpeed);
+        }
+
+        public double GetDistance() {
+            return MMath.GetDistance(a.originPoint, b.originPoint);
+        }
+
+        static public float GetAcceleration(RobotPathItem a, RobotPathItem b, float surfaceSpeed) {
+            var v1 = a.GetSpeed(surfaceSpeed);
+            var v2 = b.GetSpeed(surfaceSpeed);
+            return (v2 * v2 - v1 * v1) / (float)(a.GetDistance() + b.GetDistance());
         }
     }
 
@@ -112,7 +122,7 @@ namespace Library.RobotPathBuilder {
                 var length = (float)MMath.GetDistance(currentPathItem.a.originPoint, currentPathItem.b.originPoint);
 
                 var speedMultiplier = currentPathItem.GetSpeedMultiplier();
-                var speedAccelerationMultiplier = currentPathItem.GetSpeedAccelerationMultiplier(speed);
+                var speedAccelerationMultiplier = currentPathItem.GetSpeedAccelerationMultiplier();
                 var speedCoefficient = speedMultiplier * speedAccelerationMultiplier;
 
                 if (distance * speedCoefficient >= length) {

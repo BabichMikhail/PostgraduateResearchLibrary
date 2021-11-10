@@ -192,14 +192,18 @@ namespace Library.Generic
 
         public class IntersectionPaintResult {
             public readonly List<IntersectionPaintAmount> amountItems;
+            private readonly Point avgPoint;
 
             public IntersectionPaintResult(List<IntersectionPaintAmount> aAmountItems) {
                 amountItems = aAmountItems;
+                avgPoint = (aAmountItems[0].point + aAmountItems[1].point) / 2;
             }
 
             public Segment GetSegment() => new Segment(amountItems[0].point, amountItems[1].point);
 
             public double GetAvgAmount() => (amountItems[0].amount + amountItems[1].amount) / 2.0;
+
+            public Point GetAvgPoint() => avgPoint;
         }
 
         public class IntersectionPaintAmount {

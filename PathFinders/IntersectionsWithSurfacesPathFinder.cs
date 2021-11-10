@@ -28,13 +28,22 @@ namespace Library.PathFinders
         private readonly float paintLateralAllowance;
         private readonly float paintLongitudinalAllowance;
         private readonly float paintLineWidth;
+        private readonly bool addExtraParallelPaths;
 
-        public IntersectionsWithSurfacesPathFinder(float aPaintRadius, float aPaintHeight, float aPaintLateralAllowance, float aPaintLongitudinalAllowance, float aPaintLineWidth) {
+        public IntersectionsWithSurfacesPathFinder(
+            float aPaintRadius,
+            float aPaintHeight,
+            float aPaintLateralAllowance,
+            float aPaintLongitudinalAllowance,
+            float aPaintLineWidth,
+            bool aAddExtraParallelPaths
+        ) {
             paintRadius = aPaintRadius;
             paintHeight = aPaintHeight;
             paintLateralAllowance = aPaintLateralAllowance;
             paintLongitudinalAllowance = aPaintLongitudinalAllowance;
             paintLineWidth = aPaintLineWidth;
+            addExtraParallelPaths = aAddExtraParallelPaths;
         }
 
         public List<List<Position>> GetPaths(List<Triangle> triangles) {
@@ -222,6 +231,44 @@ namespace Library.PathFinders
                     }
 
                     result.Add(subPath);
+                }
+            }
+
+            if (addExtraParallelPaths) {
+                List<Position> minPath = null;
+                List<Position> maxPath = null;
+                foreach (var path in result) {
+                    if (minPath is null || MMath.GetDistance(basePlane, path.First().surfacePoint) < MMath.GetDistance(basePlane, minPath.First().surfacePoint)) {
+                        minPath = path;
+                    }
+                    if (maxPath is null || MMath.GetDistance(basePlane, path.First().surfacePoint) > MMath.GetDistance(basePlane, maxPath.First().surfacePoint)) {
+                        maxPath = path;
+                    }
+                }
+
+                {
+                    var newPath = new List<Position>();
+                    foreach (var position in minPath) {
+                        newPath.Add(new Position(
+                            new Point(position.originPoint.x - paintLineWidth, position.originPoint.y, position.originPoint.z),
+                            new Point(position.paintDirection.x, position.paintDirection.y, position.paintDirection.z),
+                            new Point(position.surfacePoint.x - paintLineWidth, position.surfacePoint.y, position.surfacePoint.z),
+                            position.type
+                        ));
+                    }
+                    result.Add(newPath);
+                }
+                {
+                    var newPath = new List<Position>();
+                    foreach (var position in maxPath) {
+                        newPath.Add(new Position(
+                            new Point(position.originPoint.x + paintLineWidth, position.originPoint.y, position.originPoint.z),
+                            new Point(position.paintDirection.x, position.paintDirection.y, position.paintDirection.z),
+                            new Point(position.surfacePoint.x + paintLineWidth, position.surfacePoint.y, position.surfacePoint.z),
+                            position.type
+                        ));
+                    }
+                    result.Add(newPath);
                 }
             }
 

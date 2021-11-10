@@ -140,8 +140,14 @@ namespace Library.Algorithm
             return result;
         }
 
-        public TexturePaintResult ProcessPath(
-            List<RobotPathProcessor> robotPathProcessors, List<Triangle> triangles, float maxR, float paintRadius, float paintHeight, float maxTriangleSquare,
+        public TexturePaintResult ProcessPoints(
+            List<RobotPathProcessor> robotPathProcessors,
+            List<Triangle> triangles,
+            Dictionary<Triangle, List<Point>> points,
+            float maxR,
+            float paintRadius,
+            float paintHeight,
+            float maxTriangleSquare,
             float paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
         ) {
             var maxSquare = maxTriangleSquare;
@@ -325,18 +331,19 @@ namespace Library.Algorithm
                     if (!blockedSphereTriangles.ContainsKey(st)) {
                         var t = triangleBySphereTriangle[st];
 
-                        var direction = (t.o - position.originPoint).Normalized;
-                        var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
-
-                        var dot = MMath.Dot(position.paintDirection, direction);
-                        dot = MMath.Round(dot * 1e4f) / 1e4f;
-                        var x = MMath.Sqrt(1 - dot * dot) / dot;
-                        var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * x, 0.0f, paintRadius / 3.0f);
-
                         foreach (var p in t.GetPoints()) {
+                            var direction = (p - position.originPoint).Normalized;
+                            var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
+
+                            var dot = Math.Min(1.0f, MMath.Dot(position.paintDirection, direction));
+                            // dot = MMath.Round(dot * 1e4f) / 1e4f;
+                            var tg = MMath.Sqrt(1 - dot * dot) / dot;
+                            var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * tg, 0.0f, paintRadius / 3.0f);
+
                             var r = (float)MMath.GetDistance(p, position.originPoint);
-                            var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
-                            if (float.IsInfinity(k)) {
+                            var k = paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time * density * MMath.Pow(paintHeight / (dot * r), 2) * cos;
+                            // var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
+                            if (float.IsInfinity(k) || float.IsNaN(k)) {
                                 throw new Exception("Illegal paint amount");
                             }
 
@@ -377,6 +384,27 @@ namespace Library.Algorithm
                 detailedPaintAmountForPositions = detailedPaintAmount,
                 sumAmount = sum,
             };
+        }
+
+        public TexturePaintResult ProcessPath(
+            List<RobotPathProcessor> robotPathProcessors,
+            List<Triangle> triangles,
+            float maxR,
+            float paintRadius,
+            float paintHeight,
+            float maxTriangleSquare,
+            float paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
+        ) {
+            return ProcessPoints(
+                robotPathProcessors,
+                triangles,
+                new Dictionary<Triangle, List<Point>>(),
+                maxR,
+                paintRadius,
+                paintHeight,
+                maxTriangleSquare,
+                paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
+            );
         }
     }
 }

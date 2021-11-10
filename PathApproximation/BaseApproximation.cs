@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Forms;
 using Library.Generic;
 
 namespace Library.PathApproximation
@@ -297,8 +298,90 @@ namespace Library.PathApproximation
                     positionType = Position.PositionType.Finish;
                 }
 
-                var n = (newOriginPoints[i] - newSurfacePoints[i]).Normalized;
-                result.Add(new Position(newSurfacePoints[i] + paintHeight * n, -n, newSurfacePoints[i], positionType));
+                var nDefault = (newOriginPoints[i] - newSurfacePoints[i]).Normalized;
+
+                Point n1 = null;
+                if (i > 0) {
+                    var p1 = newSurfacePoints[i - 1];
+                    var p2 = newSurfacePoints[i];
+                    n1 = new Point(0, p1.z - p2.z, p1.y - p2.y).Normalized;
+                    if (MMath.Dot(nDefault, n1) < 0) {
+                        n1 = new Point(n1.x, -n1.y, n1.z);
+                    }
+
+                    n1 *= (float)MMath.GetDistance(p1, p2);
+                }
+
+                Point n2 = null;
+                if (i + 1 < newSurfacePoints.Count) {
+                    var p1 = newSurfacePoints[i];
+                    var p2 = newSurfacePoints[i + 1];
+                    n2 = new Point(0, p1.z - p2.z, p1.y - p2.y).Normalized;
+                    if (MMath.Dot(nDefault, n2) < 0) {
+                        n2 = new Point(n2.x, -n2.y, n2.z);
+                    }
+
+                    n2 *= (float)MMath.GetDistance(p1, p2);
+                }
+
+                // 2d normals;
+                Point n0 = null;
+                if (!(n1 is null) && !(n2 is null)) {
+                    n0 = (n1 + n2).Normalized;
+                }
+                else if (!(n1 is null) ) {
+                    n0 = normals.Last();
+                    // n0 = n1.Normalized;
+                }
+                else if (!(n2 is null) ) {
+                    n0 = normals.First();
+                    // n0 = n2.Normalized;
+                }
+                else {
+                    throw new Exception("Magic");
+                }
+
+                // var n = (newOriginPoints[i] - newSurfacePoints[i]).Normalized;
+                result.Add(new Position(newSurfacePoints[i] + paintHeight * n0, -n0, newSurfacePoints[i], positionType));
+            }
+
+            var planes = new List<Plane>();
+            foreach (var t in triangles) {
+                planes.Add(t.GetPlane());
+            }
+
+            // Normal denormalization;
+            for (var j = 0; j < result.Count; ++j) {
+                var item = result[j];
+
+                var scales = new List<float>();
+                for (var k = 0; k < planes.Count; ++k) {
+                    var point = MMath.Intersect(planes[k], new Segment(item.surfacePoint, item.originPoint));
+                    if (!(point is null)) {
+                        var t = triangles[k];
+
+                        var s0 = t.GetSquare();
+                        var s1 = new Triangle(point, t.p1, t.p2).GetSquare();
+                        var s2 = new Triangle(point, t.p1, t.p3).GetSquare();
+                        var s3 = new Triangle(point, t.p2, t.p3).GetSquare();
+                        if (Math.Abs(s0 - s1 - s2 - s3) < 1e-1) {
+                            var dSurface = MMath.GetDistance(item.surfacePoint, point);
+                            var dOrigin = MMath.GetDistance(item.originPoint, point);
+                            var length = MMath.GetDistance(item.surfacePoint, item.originPoint);
+                            if (Math.Abs(dSurface + dOrigin - length) < 1e-1) {
+                                scales.Add((float)((length + dSurface) / length));
+                            }
+                            else if (Math.Abs(length + dSurface - dOrigin) < 1e-1) {
+                                scales.Add((float)(length / dSurface));
+                            }
+                        }
+                    }
+                }
+
+                if (scales.Count > 0) {
+                    var scale = scales.Min();
+                    result[j] = new Position(item.surfacePoint - item.paintDirection * paintHeight * scale, item.paintDirection, item.surfacePoint, item.type);
+                }
             }
 
             return result;
@@ -332,7 +415,6 @@ namespace Library.PathApproximation
             var queue = new Queue<Triangle>();
             queue.Enqueue(nearestT);
             processedTriangles.Add(nearestT, true);
-            var d = getDistance(nearestT, point);
             while (queue.Count > 0) {
                 var t = queue.Dequeue();
                 if (getDistance(t, point) < radius) {
