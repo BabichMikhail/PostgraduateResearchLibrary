@@ -19,7 +19,7 @@ namespace Library.PathApproximation
     }
 
     public class LinearApproximation : BaseApproximation {
-        public LinearApproximation(bool useAvgNormals) : base(useAvgNormals) {}
+        public LinearApproximation(bool useAvgNormals, bool reNormalizeNormals) : base(useAvgNormals, reNormalizeNormals) {}
 
         protected override int GetTXLength() => 2;
 

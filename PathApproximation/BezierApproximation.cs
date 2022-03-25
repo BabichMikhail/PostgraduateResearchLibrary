@@ -40,7 +40,7 @@ namespace Library.PathApproximation
     public abstract class BezierApproximation : BaseApproximation {
         private readonly int pow;
 
-        protected BezierApproximation(bool useAvgNormals, int pow) : base(useAvgNormals) {
+        protected BezierApproximation(bool useAvgNormals, bool reNormalizeNormals, int pow) : base(useAvgNormals, reNormalizeNormals) {
             this.pow = pow;
         }
 
@@ -64,26 +64,26 @@ namespace Library.PathApproximation
     }
 
     public class Bezier2Approximation : BezierApproximation {
-        public Bezier2Approximation(bool useAvgNormals) : base(useAvgNormals, 2) {}
+        public Bezier2Approximation(bool useAvgNormals, bool reNormalizerNormals) : base(useAvgNormals, reNormalizerNormals, 2) {}
     }
 
     public class Bezier3Approximation : BezierApproximation {
-        public Bezier3Approximation(bool useAvgNormals) : base(useAvgNormals, 3) {}
+        public Bezier3Approximation(bool useAvgNormals, bool reNormalizerNormals) : base(useAvgNormals, reNormalizerNormals, 3) {}
     }
 
     public class Bezier4Approximation : BezierApproximation {
-        public Bezier4Approximation(bool useAvgNormals) : base(useAvgNormals, 4) {}
+        public Bezier4Approximation(bool useAvgNormals, bool reNormalizerNormals) : base(useAvgNormals, reNormalizerNormals, 4) {}
     }
 
     public class Bezier5Approximation : BezierApproximation {
-        public Bezier5Approximation(bool useAvgNormals) : base(useAvgNormals, 5) {}
+        public Bezier5Approximation(bool useAvgNormals, bool reNormalizerNormals) : base(useAvgNormals, reNormalizerNormals, 5) {}
     }
 
     public class Bezier20Approximation : BezierApproximation {
-        public Bezier20Approximation(bool useAvgNormals) : base(useAvgNormals, 20) {}
+        public Bezier20Approximation(bool useAvgNormals, bool reNormalizerNormals) : base(useAvgNormals, reNormalizerNormals, 20) {}
     }
 
     public class BezierNApproximation : BezierApproximation {
-        public BezierNApproximation(bool useAvgNormals, int pow) : base(useAvgNormals, pow) {}
+        public BezierNApproximation(bool useAvgNormals, bool reNormalizeNormals, int pow) : base(useAvgNormals, reNormalizeNormals, pow) {}
     }
 }

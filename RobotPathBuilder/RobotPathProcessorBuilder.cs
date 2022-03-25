@@ -36,10 +36,12 @@ namespace Library.RobotPathBuilder {
             return MMath.GetDistance(a.originPoint, b.originPoint);
         }
 
-        static public float GetAcceleration(RobotPathItem a, RobotPathItem b, float surfaceSpeed) {
-            var v1 = a.GetSpeed(surfaceSpeed);
-            var v2 = b.GetSpeed(surfaceSpeed);
-            return (v2 * v2 - v1 * v1) / (float)(a.GetDistance() + b.GetDistance());
+        static public double GetAcceleration(RobotPathItem a, RobotPathItem b, float surfaceSpeed) {
+            return GetAcceleration(a.GetSpeed(surfaceSpeed), a.GetDistance(), b.GetSpeed(surfaceSpeed), b.GetDistance());
+        }
+
+        static public double GetAcceleration(double v1, double distance1, double v2, double distance2) {
+            return (v2 * v2 - v1 * v1) / (float)(distance1 + distance2);
         }
     }
 

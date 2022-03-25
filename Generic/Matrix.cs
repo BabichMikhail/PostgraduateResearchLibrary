@@ -199,7 +199,7 @@ namespace Library.Generic
             foreach (var row in items) {
                 var str = "\t[";
                 foreach (var element in row) {
-                    str += element.ToString("E", System.Globalization.CultureInfo.InvariantCulture) + ",\t";
+                    str += element.ToString("E", CultureInfo.InvariantCulture) + ",\t";
                 }
 
                 result += str.Substring(0, str.Length - 2) + "],\n";

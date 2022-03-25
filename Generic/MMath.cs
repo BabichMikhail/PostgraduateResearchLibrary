@@ -37,9 +37,9 @@ namespace Library.Generic
             var c = GetDistance(p, pm);
             var d = 2 * c;
             var e = a + b - 2 * c;
-            if (Math.Abs(dst1 + dst2 - 2 * GetDistance(p, pm)) > 1e-2 || dst1 < 1e-2 || dst2 < 1e-2) {
+            if (Math.Abs(dst1 + dst2 - 2 * GetDistance(p, pm)) > 1e-1 || dst1 < 1e-1 || dst2 < 1e-1) {
                 var dm = GetDistance(p, pm);
-                while (dm > 1e-2) {
+                while (dm > 1e-1) {
                     var newP1 = pm;
                     var newP2 = p1;
                     if (GetDistance(p, p1) > GetDistance(p, p2)) {
@@ -51,7 +51,7 @@ namespace Library.Generic
                     pm = (p1 + p2) / 2;
                     dm = GetDistance(p, pm);
 
-                    if (GetDistance(p1, p2) < 1e-2 && dm > 1e-2) {
+                    if (GetDistance(p1, p2) < 1e-1 && dm > 1e-1) {
                         // too large calculation error;
                         return null;
                     }

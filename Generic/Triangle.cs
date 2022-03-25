@@ -59,7 +59,7 @@ namespace Library.Generic
 
         public float GetSemiPerimeter() => GetPerimeter() / 2;
 
-        public float GetRadiusOfTheCircumscribedCircle() => (float)(l1 * l2 * l3) / 4 / GetSquare();
+        public float GetRadiusOfTheCircumscribedCircle() => (float)(l1 * l2 * l3) / 4 / (float)GetSquare();
 
         public Point GetCenterOfTheInscribedCircle() {
             var dp1 = (float)(p2 - p3).Magnitude;
@@ -74,9 +74,9 @@ namespace Library.Generic
             );
         }
 
-        public float GetSquare() {
+        public double GetSquare() {
             var p = GetSemiPerimeter();
-            return (float)Math.Sqrt(p * (p - l1) * (p - l2) * (p - l3));
+            return Math.Sqrt(p * (p - l1) * (p - l2) * (p - l3));
         }
 
         public static bool operator ==(Triangle a, Triangle b) {

@@ -46,7 +46,7 @@ namespace Library.PathFinders
             addExtraParallelPaths = aAddExtraParallelPaths;
         }
 
-        public List<List<Position>> GetPaths(List<Triangle> triangles) {
+        public virtual List<List<Position>> GetPaths(List<Triangle> triangles) {
             var a = new Point(1, 0, 0);
             var b = new Point(1, 1, 0);
             var c = new Point(1, 1, 1);
@@ -247,28 +247,32 @@ namespace Library.PathFinders
                 }
 
                 {
-                    var newPath = new List<Position>();
-                    foreach (var position in minPath) {
-                        newPath.Add(new Position(
-                            new Point(position.originPoint.x - paintLineWidth, position.originPoint.y, position.originPoint.z),
-                            new Point(position.paintDirection.x, position.paintDirection.y, position.paintDirection.z),
-                            new Point(position.surfacePoint.x - paintLineWidth, position.surfacePoint.y, position.surfacePoint.z),
-                            position.type
-                        ));
+                    for (var i = 1; i <= 2; ++i) {
+                        var newPath = new List<Position>();
+                        foreach (var position in minPath) {
+                            newPath.Add(new Position(
+                                new Point(position.originPoint.x - paintLineWidth * i, position.originPoint.y, position.originPoint.z),
+                                new Point(position.paintDirection.x, position.paintDirection.y, position.paintDirection.z),
+                                new Point(position.surfacePoint.x - paintLineWidth * i, position.surfacePoint.y, position.surfacePoint.z),
+                                position.type
+                            ));
+                        }
+                        result.Add(newPath);
                     }
-                    result.Add(newPath);
                 }
                 {
-                    var newPath = new List<Position>();
-                    foreach (var position in maxPath) {
-                        newPath.Add(new Position(
-                            new Point(position.originPoint.x + paintLineWidth, position.originPoint.y, position.originPoint.z),
-                            new Point(position.paintDirection.x, position.paintDirection.y, position.paintDirection.z),
-                            new Point(position.surfacePoint.x + paintLineWidth, position.surfacePoint.y, position.surfacePoint.z),
-                            position.type
-                        ));
+                    for (var i = 1; i <= 2; ++i) {
+                        var newPath = new List<Position>();
+                        foreach (var position in maxPath) {
+                            newPath.Add(new Position(
+                                new Point(position.originPoint.x + paintLineWidth * i, position.originPoint.y, position.originPoint.z),
+                                new Point(position.paintDirection.x, position.paintDirection.y, position.paintDirection.z),
+                                new Point(position.surfacePoint.x + paintLineWidth * i, position.surfacePoint.y, position.surfacePoint.z),
+                                position.type
+                            ));
+                        }
+                        result.Add(newPath);
                     }
-                    result.Add(newPath);
                 }
             }
 
@@ -370,7 +374,7 @@ namespace Library.PathFinders
         }
 
         public List<List<Position>> GetBodyPositions(List<Edge> edges, Plane fromPlane, Plane toPlane, Dictionary<Edge, Point> normalByEdge) {
-            var distanceBetweenSequences = 2 * paintLongitudinalAllowance;
+            var distanceBetweenSequences = 10;//2 * paintLongitudinalAllowance;
             var eSequences = new List<List<Edge>>();
             var usedEdges = new Dictionary<Edge, bool>();
             var usedPoints = new Dictionary<Point, bool>();

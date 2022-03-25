@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
 using Library.Generic;
+using Plane = Library.Generic.Plane;
 
-namespace Library.PathApproximation
-{
+namespace Library.PathApproximation {
     public interface IEquation {
         double GetValue(double t);
         bool IsValid(double t);
@@ -29,9 +28,11 @@ namespace Library.PathApproximation
 
     public abstract class BaseApproximation {
         private bool useAvgNormals;
+        private bool reNormalizeNormals;
 
-        protected BaseApproximation(bool useAvgNormals) {
+        protected BaseApproximation(bool useAvgNormals, bool reNormalizeNormals) {
             this.useAvgNormals = useAvgNormals;
+            this.reNormalizeNormals = reNormalizeNormals;
         }
 
         protected struct tx
@@ -88,7 +89,7 @@ namespace Library.PathApproximation
                     var sumSquare = 0.0f;
                     foreach (var t in trianglesByPoint[position.surfacePoint]) {
                         if (MMath.Dot(position.paintDirection, t.GetNormal()) < 0) {
-                            var square = t.GetSquare();
+                            var square = (float)t.GetSquare();
                             sumNormals += t.GetNormal() * square;
                             sumSquare += square;
                         }
@@ -286,6 +287,7 @@ namespace Library.PathApproximation
                 newNormals = normals;
             }
 
+            var upNormal = Point.Up;
             var paintHeight = (float)(positions[0].originPoint - positions[0].surfacePoint).Magnitude;
             var result = new List<Position>();
             for (var i = 0; i < newSurfacePoints.Count; ++i) {
@@ -298,30 +300,38 @@ namespace Library.PathApproximation
                     positionType = Position.PositionType.Finish;
                 }
 
-                var nDefault = (newOriginPoints[i] - newSurfacePoints[i]).Normalized;
+                // var nDefault = (newOriginPoints[i] - newSurfacePoints[i]).Normalized;
+                var nDefault = newNormals[i].Normalized;
+
+                var n1Str = "null";
+                var n2Str = "null";
 
                 Point n1 = null;
                 if (i > 0) {
                     var p1 = newSurfacePoints[i - 1];
                     var p2 = newSurfacePoints[i];
-                    n1 = new Point(0, p1.z - p2.z, p1.y - p2.y).Normalized;
-                    if (MMath.Dot(nDefault, n1) < 0) {
-                        n1 = new Point(n1.x, -n1.y, n1.z);
+                    // UnityEngine.Debug.Log("P1" + p1.ToString() + " " + p2.ToString() + " " + (p1 - p2).ToString());
+                    n1 = new Point(0, p1.z - p2.z, p2.y - p1.y).Normalized;
+                    if (MMath.Dot(upNormal, n1) < 0) {
+                        n1 = new Point(-n1.x, -n1.y, -n1.z).Normalized;
                     }
 
                     n1 *= (float)MMath.GetDistance(p1, p2);
+                    n1Str = new Point(n1.x, n1.y, n1.z).ToString();
                 }
 
                 Point n2 = null;
                 if (i + 1 < newSurfacePoints.Count) {
                     var p1 = newSurfacePoints[i];
                     var p2 = newSurfacePoints[i + 1];
-                    n2 = new Point(0, p1.z - p2.z, p1.y - p2.y).Normalized;
-                    if (MMath.Dot(nDefault, n2) < 0) {
-                        n2 = new Point(n2.x, -n2.y, n2.z);
+                    // UnityEngine.Debug.Log("P2" + p1.ToString() + " " + p2.ToString() + " " + (p1 - p2).ToString());
+                    n2 = new Point(0, p1.z - p2.z, p2.y - p1.y).Normalized;
+                    if (MMath.Dot(upNormal, n2) < 0) {
+                        n2 = new Point(-n2.x, -n2.y, -n2.z).Normalized;
                     }
 
                     n2 *= (float)MMath.GetDistance(p1, p2);
+                    n2Str = new Point(n2.x, n2.y, n2.z).ToString();
                 }
 
                 // 2d normals;
@@ -341,7 +351,11 @@ namespace Library.PathApproximation
                     throw new Exception("Magic");
                 }
 
-                // var n = (newOriginPoints[i] - newSurfacePoints[i]).Normalized;
+                // UnityEngine.Debug.Log("N0" + n1Str + " " + n2Str + " " + n0.ToString());
+                if (!reNormalizeNormals) {
+                    n0 = (newOriginPoints[i] - newSurfacePoints[i]).Normalized;
+                }
+
                 result.Add(new Position(newSurfacePoints[i] + paintHeight * n0, -n0, newSurfacePoints[i], positionType));
             }
 
@@ -350,13 +364,19 @@ namespace Library.PathApproximation
                 planes.Add(t.GetPlane());
             }
 
-            // Normal denormalization;
-            for (var j = 0; j < result.Count; ++j) {
+            // Normal denormalization and redirection;
+            for (var j = 0; reNormalizeNormals && j < result.Count; ++j) {
                 var item = result[j];
 
-                var scales = new List<float>();
+                var scales = new List<Tuple<double, Point>>();
                 for (var k = 0; k < planes.Count; ++k) {
-                    var point = MMath.Intersect(planes[k], new Segment(item.surfacePoint, item.originPoint));
+                    var point = MMath.Intersect(
+                        planes[k],
+                        new Segment(
+                            item.surfacePoint - 1 * item.paintDirection * paintHeight,
+                            item.surfacePoint + 1 * item.paintDirection * paintHeight
+                        )
+                    );
                     if (!(point is null)) {
                         var t = triangles[k];
 
@@ -364,23 +384,50 @@ namespace Library.PathApproximation
                         var s1 = new Triangle(point, t.p1, t.p2).GetSquare();
                         var s2 = new Triangle(point, t.p1, t.p3).GetSquare();
                         var s3 = new Triangle(point, t.p2, t.p3).GetSquare();
-                        if (Math.Abs(s0 - s1 - s2 - s3) < 1e-1) {
-                            var dSurface = MMath.GetDistance(item.surfacePoint, point);
-                            var dOrigin = MMath.GetDistance(item.originPoint, point);
-                            var length = MMath.GetDistance(item.surfacePoint, item.originPoint);
-                            if (Math.Abs(dSurface + dOrigin - length) < 1e-1) {
-                                scales.Add((float)((length + dSurface) / length));
+
+                        var dSurface = MMath.GetDistance(item.surfacePoint, point);
+                        var normal = item.paintDirection;
+                        if (Math.Abs(s0 - s1 - s2 - s3) < 50) {
+                            var dOrigin = MMath.GetDistance(item.surfacePoint - normal * paintHeight, point);
+                            var length = MMath.GetDistance(item.surfacePoint - normal * paintHeight, item.surfacePoint);
+
+                            if (normal.y < -0.98) {
+                                UnityEngine.Debug.Log("qwe");
                             }
-                            else if (Math.Abs(length + dSurface - dOrigin) < 1e-1) {
-                                scales.Add((float)(length / dSurface));
+
+                            var scale = double.NaN;
+                            var variant = 0;
+                            if (Math.Abs(dSurface + dOrigin - length) < 1) {
+                                scale = (length + dSurface) / length;
+                                variant = 1;
+                            }
+                            else if (Math.Abs(length + dSurface - dOrigin) < 1) {
+                                scale = (length - dSurface) / length;
+                                UnityEngine.Debug.Log($"Variant2: {scale} {length} {dSurface} {dOrigin}");
+                                variant = 2;
+                            }
+
+                            if (!double.IsNaN(scale)) {
+                                UnityEngine.Debug.Log($"NewScale: {variant} {normal} {scale} {scale}");
+                                scales.Add(new Tuple<double, Point>(scale, point));
                             }
                         }
                     }
                 }
 
                 if (scales.Count > 0) {
-                    var scale = scales.Min();
-                    result[j] = new Position(item.surfacePoint - item.paintDirection * paintHeight * scale, item.paintDirection, item.surfacePoint, item.type);
+                    UnityEngine.Debug.Log("ScaleCount: " + scales.Count.ToString());
+                    var bestResult = scales.First();
+                    var scale = bestResult.Item1;
+                    var newOriginPoint = item.surfacePoint - item.paintDirection * paintHeight * (float)scale;
+                    var newSurfacePoint = newOriginPoint + item.paintDirection * paintHeight;
+                    result[j] = new Position(
+                        newOriginPoint,
+                        item.paintDirection,
+                        newSurfacePoint,
+                        //item.surfacePoint,
+                        item.type
+                    );
                 }
             }
 
