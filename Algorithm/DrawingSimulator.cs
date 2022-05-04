@@ -28,8 +28,6 @@ namespace Library.Algorithm
         public Dictionary<Triangle, Dictionary<Point, double>> paintAmount;
         public List<Triangle> triangles;
         public Dictionary<RobotPathItem, Dictionary<Triangle, Dictionary<Point, double>>> detailedPaintAmountForItems;
-        public Dictionary<Position, Dictionary<Triangle, Dictionary<Point, double>>> detailedPaintAmountForPositions;
-        public double sumAmount;
     }
 
     public class DrawingSimulator {
@@ -52,6 +50,10 @@ namespace Library.Algorithm
         }
 
         private List<T> GetTrianglesInRadius<T>(List<T> triangles, Func<T, float> f, float min, float max) {
+            if (triangles.Count == 0) {
+                return triangles;
+            }
+
             var a = LowerIndex(triangles, f, min);
             var b = LowerIndex(triangles, f, max);
             return triangles.GetRange(a, b - a + 1);
@@ -140,68 +142,38 @@ namespace Library.Algorithm
             return result;
         }
 
-        public TexturePaintResult ProcessPath(
-            List<RobotPathProcessor> robotPathProcessors, List<Triangle> triangles, float maxR, float paintRadius, float paintHeight, float maxTriangleSquare,
+        public TexturePaintResult ProcessPoints(
+            List<RobotPathProcessor> robotPathProcessors,
+            List<Triangle> triangles,
+            Dictionary<Triangle, List<Point>> points,
+            float maxR,
+            float paintRadius,
+            float paintHeight,
             float paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
         ) {
-            var maxSquare = maxTriangleSquare;
-            var maxSideLength = (float)Math.Sqrt(maxSquare);
-            var triangleReplacements = SplitTriangles(triangles, maxSquare, maxSideLength);
+            var xTriangles = triangles.OrderBy(XFunc).ToList();
+            var yTriangles = triangles.OrderBy(YFunc).ToList();
+            var zTriangles = triangles.OrderBy(ZFunc).ToList();
 
-            var customTriangles = new List<Triangle>();
-            foreach (var t in triangles) {
-                if (triangleReplacements.ContainsKey(t)) {
-                    customTriangles.AddRange(triangleReplacements[t]);
-                }
-                else {
-                    customTriangles.Add(t);
-                }
-            }
-
-            var xTriangles = customTriangles.OrderBy(XFunc).ToList();
-            var yTriangles = customTriangles.OrderBy(YFunc).ToList();
-            var zTriangles = customTriangles.OrderBy(ZFunc).ToList();
-
+            var sumTime = 0.0f;
             var timePositions = new Dictionary<Position, float>();
             var detailedTimePositions = new Dictionary<Position, Dictionary<RobotPathItem, float>>();
             var itemPositionCount = new Dictionary<Position, int>();
             foreach (var rpp in robotPathProcessors) {
                 foreach (var item in rpp.GetRobotPathItems()) {
-                    if (!timePositions.ContainsKey(item.a)) {
-                        timePositions.Add(item.a, 0.0f);
-                    }
-
-                    if (!timePositions.ContainsKey(item.b)) {
-                        timePositions.Add(item.b, 0.0f);
-                    }
-
-                    if (!detailedTimePositions.ContainsKey(item.a)) {
-                        detailedTimePositions.Add(item.a, new Dictionary<RobotPathItem, float>());
-                    }
-
-                    if (!detailedTimePositions.ContainsKey(item.b)) {
-                        detailedTimePositions.Add(item.b, new Dictionary<RobotPathItem, float>());
-                    }
-
-                    if (!detailedTimePositions[item.a].ContainsKey(item)) {
-                        detailedTimePositions[item.a].Add(item, 0.0f);
-                    }
-
-                    if (!detailedTimePositions[item.b].ContainsKey(item)) {
-                        detailedTimePositions[item.b].Add(item, 0.0f);
-                    }
-
-                    if (!itemPositionCount.ContainsKey(item.a)) {
-                        itemPositionCount.Add(item.a, 0);
-                    }
-
-                    if (!itemPositionCount.ContainsKey(item.b)) {
-                        itemPositionCount.Add(item.b, 0);
-                    }
+                    DictUtils.FillValueIfNotExists(timePositions, item.a, 0.0f);
+                    DictUtils.FillValueIfNotExists(timePositions, item.b, 0.0f);
+                    DictUtils.FillValueIfNotExists(detailedTimePositions, item.a, new Dictionary<RobotPathItem, float>());
+                    DictUtils.FillValueIfNotExists(detailedTimePositions, item.b, new Dictionary<RobotPathItem, float>());
+                    DictUtils.FillValueIfNotExists(detailedTimePositions[item.a], item, 0.0f);
+                    DictUtils.FillValueIfNotExists(detailedTimePositions[item.b], item, 0.0f);
+                    DictUtils.FillValueIfNotExists(itemPositionCount, item.a, 0);
+                    DictUtils.FillValueIfNotExists(itemPositionCount, item.b, 0);
 
                     var speed = item.GetSpeed(rpp.GetSurfaceSpeed());
                     var distance = (float)MMath.GetDistance(item.a.originPoint, item.b.originPoint);
                     var time = distance / speed / 2.0f;
+                    sumTime += time * 2;
                     if (float.IsInfinity(time)) {
                         throw new Exception("Illegal time");
                     }
@@ -253,23 +225,13 @@ namespace Library.Algorithm
                 foreach (var kv in trianglesSet) {
                     var t = kv.Key;
 
-                    if (!paintAmount.ContainsKey(t)) {
-                        paintAmount.Add(t, new Dictionary<Point, double>());
-                    }
+                    DictUtils.FillValueIfNotExists(paintAmount, t, new Dictionary<Point, double>());
+                    DictUtils.FillValueIfNotExists(detailedPaintAmount[position], t, new Dictionary<Point, double>());
 
-                    foreach (var p in t.GetPoints()) {
-                        if (!paintAmount[t].ContainsKey(p)) {
-                            paintAmount[t].Add(p, 0.0);
-                        }
-                    }
-
-                    if (!detailedPaintAmount[position].ContainsKey(t)) {
-                        detailedPaintAmount[position].Add(t, new Dictionary<Point, double>());
-                    }
-
-                    foreach (var p in t.GetPoints()) {
-                        if (!detailedPaintAmount[position][t].ContainsKey(p)) {
-                            detailedPaintAmount[position][t].Add(p, 0.0);
+                    if (points.ContainsKey(t)) {
+                        foreach (var p in points[t]) {
+                            DictUtils.FillValueIfNotExists(paintAmount[t], p, 0.0);
+                            DictUtils.FillValueIfNotExists(detailedPaintAmount[position][t], p, 0.0);
                         }
                     }
 
@@ -324,25 +286,43 @@ namespace Library.Algorithm
                 foreach (var st in sphereTriangles) {
                     if (!blockedSphereTriangles.ContainsKey(st)) {
                         var t = triangleBySphereTriangle[st];
+                        foreach (var p in points[t]) {
+                            var direction = (p - position.originPoint).Normalized;
+                            var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
 
-                        var direction = (t.o - position.originPoint).Normalized;
-                        var cos = MMath.Dot(-t.GetNormal().Normalized, direction);
-
-                        var dot = MMath.Dot(position.paintDirection, direction);
-                        dot = MMath.Round(dot * 1e4f) / 1e4f;
-                        var x = MMath.Sqrt(1 - dot * dot) / dot;
-                        var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * x, 0.0f, paintRadius / 3.0f);
-
-                        foreach (var p in t.GetPoints()) {
-                            var r = (float)MMath.GetDistance(p, position.originPoint);
-                            var k = density * cos * MMath.Pow(paintHeight / r, 2) * paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time;
-                            if (float.IsInfinity(k)) {
-                                throw new Exception("Illegal paint amount");
+                            var densityTest = 1.0f;
+                            {
+                                var directionX = new Point(direction.x, direction.y, 0.0f).Normalized;
+                                var dotX = Math.Min(1.0f, MMath.Dot(position.paintDirection.Normalized, directionX.Normalized));
+                                var tgX = MMath.Sqrt(1 - dotX * dotX) / dotX;
+                                var densityX = MMath.GetNormalDistributionProbabilityDensity(paintHeight * tgX, 0.0f, paintRadius / 3.0f);
+                                densityTest *= densityX;
+                            }
+                            {
+                                var directionZ = new Point(0.0f, direction.y, direction.z);
+                                var dotZ = Math.Min(1.0f, MMath.Dot(position.paintDirection.Normalized, directionZ.Normalized));
+                                var tgZ = MMath.Sqrt(1 - dotZ * dotZ) / dotZ;
+                                var densityZ = MMath.GetNormalDistributionProbabilityDensity(paintHeight * tgZ, 0.0f, paintRadius / 3.0f);
+                                densityTest *= densityZ;
                             }
 
-                            paintAmount[t][p] += k;
-                            detailedPaintAmount[position][t][p] += k;
-                            sum += k;
+                            var dot = Math.Min(1.0f, MMath.Dot(position.paintDirection, direction));
+                            if (dot > 0) {
+                                var tg2 = MMath.Sqrt(1 - dot * dot) / dot;
+                                var density = MMath.GetNormalDistributionProbabilityDensity(paintHeight * tg2, 0.0f, paintRadius / 3.0f);
+                                density *= MMath.GetNormalDistributionProbabilityDensity(0.0f, 0.0f, paintRadius / 3.0f);
+
+                                var r = (float)MMath.GetDistance(p, position.originPoint);
+                                var k = paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time * density * MMath.Pow(paintHeight / (dot * r), 2) * cos;
+                                // var k = paintConsumptionRateGameSizeUnitsCubicMeterPerSecond * time * density * cos * MMath.Pow(paintHeight / r, 2);
+                                if (float.IsInfinity(k) || float.IsNaN(k)) {
+                                    throw new Exception("Illegal paint amount");
+                                }
+
+                                paintAmount[t][p] += k;
+                                detailedPaintAmount[position][t][p] += k;
+                                sum += k;
+                            }
                         }
                     }
                 }
@@ -370,13 +350,98 @@ namespace Library.Algorithm
                 }
             }
 
+            detailedPaintAmount.Clear();
             return new TexturePaintResult {
                 paintAmount = paintAmount,
-                triangles = customTriangles,
+                triangles = triangles,
                 detailedPaintAmountForItems = detailedPaintAmountForItems,
-                detailedPaintAmountForPositions = detailedPaintAmount,
-                sumAmount = sum,
             };
+        }
+
+        public TexturePaintResult ProcessPointsWithTriangles(
+            List<RobotPathProcessor> robotPathProcessors,
+            List<Triangle> triangles,
+            Dictionary<Triangle, List<Point>> points,
+            float maxR,
+            float paintRadius,
+            float paintHeight,
+            float maxTriangleSquare,
+            float paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
+        ) {
+            var maxSquare = maxTriangleSquare;
+            var maxSideLength = (float)Math.Sqrt(maxSquare);
+            var triangleReplacements = SplitTriangles(triangles, maxSquare, maxSideLength);
+
+            var customTriangles = new List<Triangle>();
+            foreach (var t in triangles) {
+                if (triangleReplacements.ContainsKey(t)) {
+                    if (points.ContainsKey(t)) {
+                        foreach (var point in points[t]) {
+                            var dSquare = double.MaxValue;
+                            var bestTriangle = triangleReplacements[t].First();
+                            foreach (var tr in triangleReplacements[t]) {
+                                var s0 = tr.GetSquare();
+                                var s1 = new Triangle(tr.p1, tr.p2, point).GetSquare();
+                                var s2 = new Triangle(tr.p1, tr.p3, point).GetSquare();
+                                var s3 = new Triangle(tr.p2, tr.p3, point).GetSquare();
+                                var ds = s0 - s1 - s2 - s3;
+                                if (ds < dSquare) {
+                                    dSquare = ds;
+                                    bestTriangle = tr;
+                                }
+                            }
+
+                            DictUtils.FillValueIfNotExists(points, bestTriangle, new List<Point>());
+                            points[bestTriangle].Add(point);
+                        }
+                    }
+
+                    points.Remove(t);
+                    customTriangles.AddRange(triangleReplacements[t]);
+                }
+                else {
+                    customTriangles.Add(t);
+                }
+            }
+
+            foreach (var t in customTriangles) {
+                DictUtils.FillValueIfNotExists(points, t, new List<Point>());
+                points[t].Add(t.p1);
+                points[t].Add(t.p2);
+                points[t].Add(t.p3);
+            }
+
+            var result = ProcessPoints(
+                robotPathProcessors,
+                customTriangles,
+                points,
+                maxR,
+                paintRadius,
+                paintHeight,
+                paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
+            );
+            return result;
+        }
+
+        public TexturePaintResult ProcessPath(
+            List<RobotPathProcessor> robotPathProcessors,
+            List<Triangle> triangles,
+            float maxR,
+            float paintRadius,
+            float paintHeight,
+            float maxTriangleSquare,
+            float paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
+        ) {
+            return ProcessPointsWithTriangles(
+                robotPathProcessors,
+                triangles,
+                new Dictionary<Triangle, List<Point>>(),
+                maxR,
+                paintRadius,
+                paintHeight,
+                maxTriangleSquare,
+                paintConsumptionRateGameSizeUnitsCubicMeterPerSecond
+            );
         }
     }
 }

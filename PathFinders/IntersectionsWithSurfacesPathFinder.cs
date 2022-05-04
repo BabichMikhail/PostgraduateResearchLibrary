@@ -28,16 +28,25 @@ namespace Library.PathFinders
         private readonly float paintLateralAllowance;
         private readonly float paintLongitudinalAllowance;
         private readonly float paintLineWidth;
+        private readonly bool addExtraParallelPaths;
 
-        public IntersectionsWithSurfacesPathFinder(float aPaintRadius, float aPaintHeight, float aPaintLateralAllowance, float aPaintLongitudinalAllowance, float aPaintLineWidth) {
+        public IntersectionsWithSurfacesPathFinder(
+            float aPaintRadius,
+            float aPaintHeight,
+            float aPaintLateralAllowance,
+            float aPaintLongitudinalAllowance,
+            float aPaintLineWidth,
+            bool aAddExtraParallelPaths
+        ) {
             paintRadius = aPaintRadius;
             paintHeight = aPaintHeight;
             paintLateralAllowance = aPaintLateralAllowance;
             paintLongitudinalAllowance = aPaintLongitudinalAllowance;
             paintLineWidth = aPaintLineWidth;
+            addExtraParallelPaths = aAddExtraParallelPaths;
         }
 
-        public List<List<Position>> GetPaths(List<Triangle> triangles) {
+        public virtual List<List<Position>> GetPaths(List<Triangle> triangles) {
             var a = new Point(1, 0, 0);
             var b = new Point(1, 1, 0);
             var c = new Point(1, 1, 1);
@@ -225,6 +234,48 @@ namespace Library.PathFinders
                 }
             }
 
+            if (addExtraParallelPaths) {
+                List<Position> minPath = null;
+                List<Position> maxPath = null;
+                foreach (var path in result) {
+                    if (minPath is null || MMath.GetDistance(basePlane, path.First().surfacePoint) < MMath.GetDistance(basePlane, minPath.First().surfacePoint)) {
+                        minPath = path;
+                    }
+                    if (maxPath is null || MMath.GetDistance(basePlane, path.First().surfacePoint) > MMath.GetDistance(basePlane, maxPath.First().surfacePoint)) {
+                        maxPath = path;
+                    }
+                }
+
+                {
+                    for (var i = 1; i <= 2; ++i) {
+                        var newPath = new List<Position>();
+                        foreach (var position in minPath) {
+                            newPath.Add(new Position(
+                                new Point(position.originPoint.x - paintLineWidth * i, position.originPoint.y, position.originPoint.z),
+                                new Point(position.paintDirection.x, position.paintDirection.y, position.paintDirection.z),
+                                new Point(position.surfacePoint.x - paintLineWidth * i, position.surfacePoint.y, position.surfacePoint.z),
+                                position.type
+                            ));
+                        }
+                        result.Add(newPath);
+                    }
+                }
+                {
+                    for (var i = 1; i <= 2; ++i) {
+                        var newPath = new List<Position>();
+                        foreach (var position in maxPath) {
+                            newPath.Add(new Position(
+                                new Point(position.originPoint.x + paintLineWidth * i, position.originPoint.y, position.originPoint.z),
+                                new Point(position.paintDirection.x, position.paintDirection.y, position.paintDirection.z),
+                                new Point(position.surfacePoint.x + paintLineWidth * i, position.surfacePoint.y, position.surfacePoint.z),
+                                position.type
+                            ));
+                        }
+                        result.Add(newPath);
+                    }
+                }
+            }
+
             return result;
         }
 
@@ -323,7 +374,8 @@ namespace Library.PathFinders
         }
 
         public List<List<Position>> GetBodyPositions(List<Edge> edges, Plane fromPlane, Plane toPlane, Dictionary<Edge, Point> normalByEdge) {
-            var distanceBetweenSequences = 2 * paintLongitudinalAllowance;
+            // TODO fix it
+            var distanceBetweenSequences = 10;//2 * paintLongitudinalAllowance;
             var eSequences = new List<List<Edge>>();
             var usedEdges = new Dictionary<Edge, bool>();
             var usedPoints = new Dictionary<Point, bool>();

@@ -20,7 +20,7 @@ namespace Library.PathApproximation
     }
 
     public class SecondOrderApproximation : BaseApproximation {
-        public SecondOrderApproximation(bool useAvgNormals) : base(useAvgNormals) {}
+        public SecondOrderApproximation(bool useAvgNormals, bool reNormalizeNormals) : base(useAvgNormals, reNormalizeNormals) {}
 
         protected override int GetTXLength() => 3;
 

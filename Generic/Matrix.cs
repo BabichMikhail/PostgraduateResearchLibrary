@@ -195,17 +195,17 @@ namespace Library.Generic
         }
 
         public override string ToString() {
-            var result = "[\n";
+            var result = "";
             foreach (var row in items) {
                 var str = "\t[";
                 foreach (var element in row) {
-                    str += element.ToString("E", System.Globalization.CultureInfo.InvariantCulture) + ",\t";
+                    str += element.ToString("E", CultureInfo.InvariantCulture) + ",\t";
                 }
 
                 result += str.Substring(0, str.Length - 2) + "],\n";
             }
 
-            return result.Substring(0, result.Length - 2) + "\n]";
+            return "[\n" + result.Substring(0, Math.Max(result.Length - 2, 0)) + "\n]";
         }
 
         public static Matrix FromString(string matrixStr) {
