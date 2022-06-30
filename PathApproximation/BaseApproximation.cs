@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Library.Generic;
+using UnityEngine;
 using Plane = Library.Generic.Plane;
 
 namespace Library.PathApproximation {
@@ -376,28 +377,19 @@ namespace Library.PathApproximation {
 
                         var dSurface = MMath.GetDistance(item.surfacePoint, point);
                         var normal = item.paintDirection;
-                        if (Math.Abs(s0 - s1 - s2 - s3) < 50) {
+                        if (Math.Abs(s0 - s1 - s2 - s3) < 1000) {
                             var dOrigin = MMath.GetDistance(item.surfacePoint - normal * paintHeight, point);
                             var length = MMath.GetDistance(item.surfacePoint - normal * paintHeight, item.surfacePoint);
 
-                            if (normal.y < -0.98) {
-                                UnityEngine.Debug.Log("qwe");
-                            }
-
                             var scale = double.NaN;
-                            var variant = 0;
                             if (Math.Abs(dSurface + dOrigin - length) < 1) {
                                 scale = (length + dSurface) / length;
-                                variant = 1;
                             }
                             else if (Math.Abs(length + dSurface - dOrigin) < 1) {
                                 scale = (length - dSurface) / length;
-                                UnityEngine.Debug.Log($"Variant2: {scale} {length} {dSurface} {dOrigin}");
-                                variant = 2;
                             }
 
                             if (!double.IsNaN(scale)) {
-                                UnityEngine.Debug.Log($"NewScale: {variant} {normal} {scale} {scale}");
                                 scales.Add(new Tuple<double, Point>(scale, point));
                             }
                         }
@@ -405,11 +397,16 @@ namespace Library.PathApproximation {
                 }
 
                 if (scales.Count > 0) {
-                    UnityEngine.Debug.Log("ScaleCount: " + scales.Count.ToString());
+                    scales = scales.OrderBy(x => {
+                        var tmpOriginPoint = item.surfacePoint - item.paintDirection * paintHeight * (float)x.Item1;
+                        var tmpSurfacePoint = tmpOriginPoint + item.paintDirection * paintHeight;
+                        return MMath.GetDistance(tmpSurfacePoint, item.surfacePoint);
+                    }).ToList();
                     var bestResult = scales.First();
                     var scale = bestResult.Item1;
                     var newOriginPoint = item.surfacePoint - item.paintDirection * paintHeight * (float)scale;
                     var newSurfacePoint = newOriginPoint + item.paintDirection * paintHeight;
+
                     result[j] = new Position(
                         newOriginPoint,
                         item.paintDirection,
